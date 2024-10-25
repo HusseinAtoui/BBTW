@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Phase one, Draft 1 
+// Phase one, Draft 2
 
-#define GRID 10 
+#define GRID 10
 
 struct Ship
 {
@@ -34,13 +34,48 @@ void gridStart(char grid[GRID][GRID])
 
 void gridDisplay(char grid[GRID][GRID])
 {
-    printf("  A B C D E F G H I J\n");
+    printf("   A B C D E F G H I J\n");
     for (int i = 0; i < GRID; i++)
     {
-        printf("%d ", i + 1);
+        printf("%2d ", i + 1);
         for (int j = 0; j < GRID; j++)
         {
             printf("%c ", grid[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+void gridDisplayOpp(char grid[GRID][GRID])
+{
+    char NewGird[GRID][GRID];
+
+    for (int i = 0; i < GRID; i++)
+    {
+        for (int j = 0; j < GRID; j++)
+        {
+            if (grid[i][j] == 'X')
+            {
+                NewGird[i][j] = 'X';
+            }
+            else if (grid[i][j] == 'M')
+            {
+                NewGird[i][j] = 'M';
+            }
+            else
+            {
+                NewGird[i][j] = '~';
+            }
+        }
+    }
+
+    printf("   A B C D E F G H I J\n");
+    for (int i = 0; i < GRID; i++)
+    {
+        printf("%2d ", i + 1);
+        for (int j = 0; j < GRID; j++)
+        {
+            printf("%c ", NewGird[i][j]);
         }
         printf("\n");
     }
@@ -232,12 +267,23 @@ int main()
 
     while (1)
     {
-        printf("\n%s's turn. Opponent's grid:\n", rnPlayer->name);
-        gridDisplay(evilPlayer->grid);
+        for (int i = 0; i < 55; i++)
+        {
+            printf("-");
+        }
 
-        playerTurn(rnPlayer, evilPlayer);
+        printf("\n");
+
+        printf("\n%s's turn.\n", rnPlayer->name);
         printf("\n%s's grid:\n", rnPlayer->name);
         gridDisplay(rnPlayer->grid);
+
+        printf("\n");
+
+        printf("Opponent's grid: \n"); 
+        gridDisplayOpp(evilPlayer->grid);
+
+        playerTurn(rnPlayer, evilPlayer);
 
         if (checkWin(evilPlayer))
         {
