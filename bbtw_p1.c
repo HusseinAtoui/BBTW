@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Phase one, Draft 2
+// Phase one, Draft 3
 
 #define GRID 10
 
@@ -213,6 +213,80 @@ void playerTurn(struct Player *attacker, struct Player *defender)
     }
 }
 
+void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
+{
+
+    if (defender->grid[x][y] == 'X' || defender->grid[x][y] == 'M') // already attacked
+    {
+        printf("Position %c%d has already been attacked. Try a different coordinate.\n", 'A' + y, x + 1);
+        return;
+    }
+
+    if (defender->grid[x][y] != '~')
+    {
+        printf("Hit at %c%d!\n", 'A' + y, x + 1);
+        defender->grid[x][y] = 'X';
+        for (int i = 0; i < 4; i++)
+        {
+            if (defender->ships[i].name[0] == defender->grid[x][y])
+            {
+                defender->ships[i].hits++;
+            }
+        }
+    }
+    else
+    {
+        printf("Miss at %c%d!\n", 'A' + y, x + 1);
+        defender->grid[x][y] = 'M';
+    }
+}
+
+void gamePlay(struct Player *attacker, struct Player *defender)
+{
+    char command[15];
+    int x;    // x -> row
+    char col; // col for column character
+
+    while (1)
+    {
+        printf("Game Play Commands: Fire / RadarSweep / SmokeScreen / Artillery / Torpedo\n");
+        printf("%s, Enter your Command (For example, Fire): ", attacker->name);
+
+        if (scanf("%14s", command) != 1)
+        {
+            printf("Invalid command. Try again.\n");
+            while (getchar() != '\n')
+                ;
+            continue;
+        }
+
+        printf("%s, enter your attack coordinates (for example, A4): ", attacker->name);
+
+        if (scanf(" %c%d", &col, &x) != 2 || x < 1 || x > GRID || col < 'A' || col >= 'A' + GRID)
+        {
+            printf("Invalid coordinates. Please try again.\n");
+            while (getchar() != '\n')
+                ;
+            continue;
+        }
+
+        x--;
+        int y = col - 'A';
+
+        if (strcmp(command, "Fire") == 0)
+        {
+            fire_GP(attacker, defender, x, y);
+            break;
+        }
+        else
+        {
+            printf("Unknown command or incorrect format. Try again.\n");
+            while (getchar() != '\n')
+                ;
+        }
+    }
+}
+
 int checkWin(struct Player *player)
 {
     for (int i = 0; i < 4; i++)
@@ -280,10 +354,11 @@ int main()
 
         printf("\n");
 
-        printf("Opponent's grid: \n"); 
+        printf("Opponent's grid: \n");
         gridDisplayOpp(evilPlayer->grid);
 
-        playerTurn(rnPlayer, evilPlayer);
+        //  playerTurn(rnPlayer, evilPlayer); // gameplay instead
+        gamePlay(rnPlayer, evilPlayer);
 
         if (checkWin(evilPlayer))
         {
