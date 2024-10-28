@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Phase one, Draft 3
+// Phase one, Draft 4
 
 #define GRID 10
 
@@ -19,6 +19,7 @@ struct Player
     char grid[GRID][GRID];
     char difficulty[10];
     struct Ship ships[4];
+    int Rsweep;
 };
 
 void gridStart(char grid[GRID][GRID])
@@ -241,48 +242,72 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
     }
 }
 
+void RadarSweep_GP (struct Player *attacker, struct Player *defender, int x, int y){
+    if (attacker->Rsweep == 0){
+        printf("Player has already used up all of their Radar Sweeps\n");
+        return;
+    } else {
+        attacker->Rsweep --;
+        
+        for (int i = x; i < x + 2 && i < GRID; i++) {
+            for (int j = y; j < y + 2 && j < GRID; j++) {
+                if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'M' && defender->grid[i][j] != 'X') {
+                    printf("Enemy ships found!\n");
+                    return;
+                    
+                }
+            }
+        }
+    }
+    printf("No enemy ships found\n");
+    return;
+}
+
 void gamePlay(struct Player *attacker, struct Player *defender)
 {
     char command[15];
-    int x;    // x -> row
+    int x; // x -> row
     char col; // col for column character
 
     while (1)
     {
         printf("Game Play Commands: Fire / RadarSweep / SmokeScreen / Artillery / Torpedo\n");
         printf("%s, Enter your Command (For example, Fire): ", attacker->name);
-
-        if (scanf("%14s", command) != 1)
+        
+        if (scanf("%14s", command) != 1) 
         {
             printf("Invalid command. Try again.\n");
-            while (getchar() != '\n')
-                ;
+            while (getchar() != '\n');
             continue;
         }
 
         printf("%s, enter your attack coordinates (for example, A4): ", attacker->name);
-
+        
+        
         if (scanf(" %c%d", &col, &x) != 2 || x < 1 || x > GRID || col < 'A' || col >= 'A' + GRID)
         {
             printf("Invalid coordinates. Please try again.\n");
-            while (getchar() != '\n')
-                ;
+            while (getchar() != '\n'); 
             continue;
         }
 
-        x--;
+        x--; 
         int y = col - 'A';
 
-        if (strcmp(command, "Fire") == 0)
+        if (strcmp(command, "Fire") == 0) 
         {
             fire_GP(attacker, defender, x, y);
+            break;
+        } 
+        else if(strcmp(command, "RadarSweep") == 0)
+        {
+            RadarSweep_GP(attacker, defender, x, y);
             break;
         }
         else
         {
             printf("Unknown command or incorrect format. Try again.\n");
-            while (getchar() != '\n')
-                ;
+            while (getchar() != '\n'); 
         }
     }
 }
@@ -322,6 +347,7 @@ int main()
     scanf("%s", p2.name);
 
     printf("For player 1:\n");
+    p1.Rsweep = 3;
     gridStart(p1.grid);
     shipsFR(&p1);
     placeShip(&p1);
@@ -329,6 +355,7 @@ int main()
     gridDisplay(p1.grid);
 
     printf("For player 2:\n");
+    p2.Rsweep = 3;
     gridStart(p2.grid);
     shipsFR(&p2);
     placeShip(&p2);
