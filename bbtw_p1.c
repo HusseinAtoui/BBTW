@@ -55,13 +55,13 @@ void gridDisplayOpp(char grid[GRID][GRID])
     {
         for (int j = 0; j < GRID; j++)
         {
-            if (grid[i][j] == 'X')
+            if (grid[i][j] == '*')
             {
-                NewGird[i][j] = 'X';
+                NewGird[i][j] = '*';
             }
-            else if (grid[i][j] == 'M')
+            else if (grid[i][j] == 'o')
             {
-                NewGird[i][j] = 'M';
+                NewGird[i][j] = 'o';
             }
             else
             {
@@ -187,7 +187,7 @@ void playerTurn(struct Player *attacker, struct Player *defender)
 
         y = col - 'A';
 
-        if (defender->grid[x][y] == 'X' || defender->grid[x][y] == 'M')
+        if (defender->grid[x][y] == '*' || defender->grid[x][y] == 'o')
         {
             printf("You already attacked this position. yalla again.\n");
             continue;
@@ -196,7 +196,7 @@ void playerTurn(struct Player *attacker, struct Player *defender)
         if (defender->grid[x][y] != '~')
         {
             printf("Hit at %c%d!\n", 'A' + y, x + 1);
-            defender->grid[x][y] = 'X';
+            defender->grid[x][y] = '*';
             for (int i = 0; i < 4; i++)
             {
                 if (defender->ships[i].name[0] == defender->grid[x][y])
@@ -208,7 +208,7 @@ void playerTurn(struct Player *attacker, struct Player *defender)
         else
         {
             printf("Miss at %c%d!\n", 'A' + y, x + 1);
-            defender->grid[x][y] = 'M';
+            defender->grid[x][y] = 'o';
         }
         break;
     }
@@ -217,7 +217,7 @@ void playerTurn(struct Player *attacker, struct Player *defender)
 void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
 {
 
-    if (defender->grid[x][y] == 'X' || defender->grid[x][y] == 'M') // already attacked
+    if (defender->grid[x][y] == '*' || defender->grid[x][y] == 'o') // already attacked
     {
         printf("Position %c%d has already been attacked. Try a different coordinate.\n", 'A' + y, x + 1);
         return;
@@ -226,7 +226,7 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
     if (defender->grid[x][y] != '~')
     {
         printf("Hit at %c%d!\n", 'A' + y, x + 1);
-        defender->grid[x][y] = 'X';
+        defender->grid[x][y] = '*';
         for (int i = 0; i < 4; i++)
         {
             if (defender->ships[i].name[0] == defender->grid[x][y])
@@ -238,7 +238,7 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
     else
     {
         printf("Miss at %c%d!\n", 'A' + y, x + 1);
-        defender->grid[x][y] = 'M';
+        defender->grid[x][y] = 'o';
     }
 }
 
@@ -251,7 +251,7 @@ void RadarSweep_GP (struct Player *attacker, struct Player *defender, int x, int
         
         for (int i = x; i < x + 2 && i < GRID; i++) {
             for (int j = y; j < y + 2 && j < GRID; j++) {
-                if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'M' && defender->grid[i][j] != 'X') {
+                if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'o' && defender->grid[i][j] != '*') {
                     printf("Enemy ships found!\n");
                     return;
                     
@@ -314,22 +314,19 @@ void gamePlay(struct Player *attacker, struct Player *defender)
 
 int checkWin(struct Player *player)
 {
+	int shipDone = 1;
     for (int i = 0; i < 4; i++)
     {
         if (player->ships[i].hits >= player->ships[i].size)
         {
-            printf("%s has sunk the %s!\n", player->name, player->ships[i].name);
+            printf("The %s has sunk!\n", player->ships[i].name);
         }
+		else
+		{
+			shipDone = 0;
+		}
     }
-
-    for (int i = 0; i < 4; i++)
-    {
-        if (player->ships[i].hits < player->ships[i].size)
-        {
-            return 0;
-        }
-    }
-    return 1;
+    return shipDone;
 }
 
 int main()
