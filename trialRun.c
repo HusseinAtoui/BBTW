@@ -24,6 +24,9 @@ struct Player
     int Rsweep;
     int smokeScreens;
     int smokeRound;
+    int artill; 
+    bool shot;
+    int tor;
 };
 
 void gridStart(char grid[GRID][GRID])
@@ -212,10 +215,16 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
                 {
                     defender->ships[i].sank = 1;
                     printf("The %s has sunk!\n", defender->ships[i].name);
+                    defender->shot = true; 
+                    if (countSink(defender) == 3){
+                        attacker->tor = 1;
+                    }
+                } else
+                {
+                    defender->shot = false;
                 }
             }
         }
-    }
     else
     {
         printf("Miss at %c%d!\n", 'A' + y, x + 1);
@@ -367,6 +376,9 @@ void gamePlay(struct Player *attacker, struct Player *defender)
             smokeScreen_GP(attacker, defender, x, y);
             break;
         }
+         else if (strcmp(command, "Artillery") == 0)
+        {
+            artillery (attacker, defender, x, y);
         else
         {
             printf("Unknown command or incorrect format. Try again.\n");
@@ -404,6 +416,7 @@ int main()
 
     printf("For player 1:\n");
     p1.Rsweep = 3;
+    p1.artill = 1;
     gridStart(p1.grid);
     shipsFR(&p1);
     placeShip(&p1);
@@ -412,6 +425,7 @@ int main()
 
     printf("For player 2:\n");
     p2.Rsweep = 3;
+    p2.artill = 1;
     gridStart(p2.grid);
     shipsFR(&p2);
     placeShip(&p2);
