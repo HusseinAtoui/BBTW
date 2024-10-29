@@ -432,8 +432,6 @@ int main()
         printf("\n");
 
         printf("\n%s's turn.\n", rnPlayer->name);
-        printf("\n%s's grid:\n", rnPlayer->name);
-        gridDisplay(rnPlayer->grid);
 
         printf("\n");
 
