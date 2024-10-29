@@ -181,10 +181,11 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
     if (defender->grid[x][y] != '~')
     {
         printf("Hit at %c%d!\n", 'A' + y, x + 1);
+        char shipLetter = defender->grid[x][y];
         defender->grid[x][y] = '*';
         for (int i = 0; i < 4; i++)
         {
-            if (defender->ships[i].name[0] == defender->grid[x][y])
+            if (defender->ships[i].name[0] == shipLetter)
             {
                 defender->ships[i].hits++;
                 if (defender->ships[i].hits >= defender->ships[i].size && defender->ships[i].sank == 0) {
