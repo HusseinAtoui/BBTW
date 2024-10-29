@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Phase one, Draft 4
+// Phase one, Draft 5
 
 #define GRID 10
 
@@ -11,6 +11,7 @@ struct Ship
     char name[20];
     int size;
     int hits;
+    int sank;
 };
 
 struct Player
@@ -89,10 +90,10 @@ int randomFP()
 
 void shipsFR(struct Player *player)
 {
-    player->ships[0] = (struct Ship){"Carrier", 5, 0};
-    player->ships[1] = (struct Ship){"Battleship", 4, 0};
-    player->ships[2] = (struct Ship){"Destroyer", 3, 0};
-    player->ships[3] = (struct Ship){"Submarine", 2, 0};
+    player->ships[0] = (struct Ship){"Carrier", 5, 0, 0};
+    player->ships[1] = (struct Ship){"Battleship", 4, 0, 0};
+    player->ships[2] = (struct Ship){"Destroyer", 3, 0, 0};
+    player->ships[3] = (struct Ship){"Submarine", 2, 0, 0};
 }
 
 int canPlaceShip(char grid[GRID][GRID], int x, int y, int size, char dir)
@@ -242,19 +243,25 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
     }
 }
 
-void RadarSweep_GP (struct Player *attacker, struct Player *defender, int x, int y){
-    if (attacker->Rsweep == 0){
+void RadarSweep_GP(struct Player *attacker, struct Player *defender, int x, int y)
+{
+    if (attacker->Rsweep == 0)
+    {
         printf("Player has already used up all of their Radar Sweeps\n");
         return;
-    } else {
-        attacker->Rsweep --;
-        
-        for (int i = x; i < x + 2 && i < GRID; i++) {
-            for (int j = y; j < y + 2 && j < GRID; j++) {
-                if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'o' && defender->grid[i][j] != '*') {
+    }
+    else
+    {
+        attacker->Rsweep--;
+
+        for (int i = x; i < x + 2 && i < GRID; i++)
+        {
+            for (int j = y; j < y + 2 && j < GRID; j++)
+            {
+                if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'o' && defender->grid[i][j] != '*')
+                {
                     printf("Enemy ships found!\n");
                     return;
-                    
                 }
             }
         }
@@ -266,40 +273,41 @@ void RadarSweep_GP (struct Player *attacker, struct Player *defender, int x, int
 void gamePlay(struct Player *attacker, struct Player *defender)
 {
     char command[15];
-    int x; // x -> row
+    int x;    // x -> row
     char col; // col for column character
 
     while (1)
     {
         printf("Game Play Commands: Fire / RadarSweep / SmokeScreen / Artillery / Torpedo\n");
         printf("%s, Enter your Command (For example, Fire): ", attacker->name);
-        
-        if (scanf("%14s", command) != 1) 
+
+        if (scanf("%14s", command) != 1)
         {
             printf("Invalid command. Try again.\n");
-            while (getchar() != '\n');
+            while (getchar() != '\n')
+                ;
             continue;
         }
 
         printf("%s, enter your attack coordinates (for example, A4): ", attacker->name);
-        
-        
+
         if (scanf(" %c%d", &col, &x) != 2 || x < 1 || x > GRID || col < 'A' || col >= 'A' + GRID)
         {
             printf("Invalid coordinates. Please try again.\n");
-            while (getchar() != '\n'); 
+            while (getchar() != '\n')
+                ;
             continue;
         }
 
-        x--; 
+        x--;
         int y = col - 'A';
 
-        if (strcmp(command, "Fire") == 0) 
+        if (strcmp(command, "Fire") == 0)
         {
             fire_GP(attacker, defender, x, y);
             break;
-        } 
-        else if(strcmp(command, "RadarSweep") == 0)
+        }
+        else if (strcmp(command, "RadarSweep") == 0)
         {
             RadarSweep_GP(attacker, defender, x, y);
             break;
@@ -307,24 +315,25 @@ void gamePlay(struct Player *attacker, struct Player *defender)
         else
         {
             printf("Unknown command or incorrect format. Try again.\n");
-            while (getchar() != '\n'); 
+            while (getchar() != '\n')
+                ;
         }
     }
 }
 
 int checkWin(struct Player *player)
 {
-	int shipDone = 1;
+    int shipDone = 1;
     for (int i = 0; i < 4; i++)
     {
         if (player->ships[i].hits >= player->ships[i].size)
         {
             printf("The %s has sunk!\n", player->ships[i].name);
         }
-		else
-		{
-			shipDone = 0;
-		}
+        else
+        {
+            shipDone = 0;
+        }
     }
     return shipDone;
 }
