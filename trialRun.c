@@ -217,7 +217,7 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
                     defender->ships[i].sank = 1;
                     printf("The %s has sunk!\n", defender->ships[i].name);
                     defender->shot = true; 
-                    if (countSink(defender) == 3){
+                    if (countSink(attacker, defender) == 3){
                         attacker->tor = 1;
                     }
                 } else
@@ -226,6 +226,7 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
                 }
             }
         }
+    }
     else
     {
         printf("Miss at %c%d!\n", 'A' + y, x + 1);
@@ -408,6 +409,7 @@ void gamePlay(struct Player *attacker, struct Player *defender)
          else if (strcmp(command, "Artillery") == 0)
         {
             artillery (attacker, defender, x, y);
+        }
         else
         {
             printf("Unknown command or incorrect format. Try again.\n");
