@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Phase one, Draft 6
+// Phase one, running correclty up until smoke screen
 
 #define GRID 10
 
@@ -18,6 +18,7 @@ struct Player
 {
     char name[50];
     char grid[GRID][GRID];
+    char copiedGird[GRID][GRID];
     char difficulty[10];
     struct Ship ships[4];
     int Rsweep;
@@ -50,7 +51,8 @@ void gridDisplay(char grid[GRID][GRID])
     }
 }
 
-void gridDisplayOpp(char grid[GRID][GRID]){
+void gridDisplayOpp(char grid[GRID][GRID])
+{
     char NewGird[GRID][GRID];
 
     for (int i = 0; i < GRID; i++)
@@ -81,6 +83,48 @@ void gridDisplayOpp(char grid[GRID][GRID]){
             printf("%c ", NewGird[i][j]);
         }
         printf("\n");
+    }
+}
+
+void gridDisplayOppHARD(char grid[GRID][GRID])
+{
+    char NewGird[GRID][GRID];
+
+    for (int i = 0; i < GRID; i++)
+    {
+        for (int j = 0; j < GRID; j++)
+        {
+            if (grid[i][j] == '*' || grid[i][j] == 'o')
+            {
+                NewGird[i][j] = 'o';
+            }
+            else
+            {
+                NewGird[i][j] = '~';
+            }
+        }
+    }
+
+    printf("   A B C D E F G H I J\n");
+    for (int i = 0; i < GRID; i++)
+    {
+        printf("%2d ", i + 1);
+        for (int j = 0; j < GRID; j++)
+        {
+            printf("%c ", NewGird[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+void gridCopy(char grid[GRID][GRID], char copyGrid[GRID][GRID])
+{
+    for (int i = 0; i < GRID; i++)
+    {
+        for (int j = 0; j < GRID; j++)
+        {
+            copyGrid[i][j] = grid[i][j];
+        }
     }
 }
 
@@ -172,7 +216,7 @@ void placeShip(struct Player *player)
 
 void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
 {
-    if (defender->grid[x][y] == 'X') 
+    if (defender->grid[x][y] == 'X')
     {
         printf("Cannot attack, smoke screen is blocking this area at %c%d.\n", 'A' + y, x + 1);
         return;
@@ -186,15 +230,20 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
 
     if (defender->grid[x][y] != '~')
     {
-        printf("Hit at %c%d!\n", 'A' + y, x + 1);
+        if (strcmp(attacker->difficulty, "easy") == 0)
+        {
+            printf("Hit at %c%d!\n", 'A' + y, x + 1);
+        }
         char shipLetter = defender->grid[x][y];
         defender->grid[x][y] = '*';
+
         for (int i = 0; i < 4; i++)
         {
             if (defender->ships[i].name[0] == shipLetter)
             {
                 defender->ships[i].hits++;
-                if (defender->ships[i].hits >= defender->ships[i].size && defender->ships[i].sank == 0) {
+                if (defender->ships[i].hits >= defender->ships[i].size && defender->ships[i].sank == 0)
+                {
                     defender->ships[i].sank = 1;
                     printf("The %s has sunk!\n", defender->ships[i].name);
                 }
@@ -203,7 +252,11 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
     }
     else
     {
-        printf("Miss at %c%d!\n", 'A' + y, x + 1);
+        if (strcmp(attacker->difficulty, "easy") == 0)
+        {
+            printf("Miss at %c%d!\n", 'A' + y, x + 1);
+        }
+
         defender->grid[x][y] = 'o';
     }
 }
@@ -223,7 +276,12 @@ void RadarSweep_GP(struct Player *attacker, struct Player *defender, int x, int 
         {
             for (int j = y; j < y + 2 && j < GRID; j++)
             {
-                if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'o' && defender->grid[i][j] != '*')
+                if (defender->grid[i][j] == 'X') // Smoke screen area
+                {
+                    printf("Miss at %c%d!\n", 'A' + j, i + 1);
+                    return;
+                }
+                else if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'o' && defender->grid[i][j] != '*')
                 {
                     printf("Enemy ships found!\n");
                     return;
@@ -235,12 +293,15 @@ void RadarSweep_GP(struct Player *attacker, struct Player *defender, int x, int 
     return;
 }
 
-int countSink(struct Player *attacker){
+int countSink(struct Player *attacker, struct Player *defender)
+{
     int x = 0;
-    //loop over array and x++ whenever arr[i] = 1;
-    for (int i = 0; i<4; i++){
-        if (attacker->ships[i].sank == 1){
-        x++;
+    // loop over array and x++ whenever arr[i] = 1;
+    for (int i = 0; i < 4; i++)
+    {
+        if (defender->ships[i].sank == 1)
+        {
+            x++;
         }
     }
     return x;
@@ -248,27 +309,30 @@ int countSink(struct Player *attacker){
 
 void smokeScreen_GP(struct Player *attacker, struct Player *defender, int x, int y)
 {
-    if (attacker->smokeScreens >= 4 - countSink(attacker)) 
+    int maxSS = countSink(attacker, defender);
+    if (attacker->smokeScreens >= maxSS)
     {
-        printf("You cannt use more smoke screens than ships sunk. You lost your turn.\n");
+        printf("You can not use more smoke screens than ships sunk. You lost your turn.\n");
         return;
     }
-    if (x < 0 || x + 1 >= GRID || y < 0 || y + 1 >= GRID) 
+    if (x < 0 || x + 1 >= GRID || y < 0 || y + 1 >= GRID)
     {
         printf("Invalid smoke screen placement. Out of bounds.\n");
         return;
     }
 
-    for (int i = x; i<x+2 && i<GRID; i++)
+    gridCopy(attacker->grid, attacker->copiedGird); // copied the grid to get values back later
+
+    for (int i = x; i < x + 2 && i < GRID; i++)
     {
-        for (int j = y; j<y+2 && j<GRID; j++)
+        for (int j = y; j < y + 2 && j < GRID; j++)
         {
             attacker->grid[i][j] = 'X';
         }
     }
 
     attacker->smokeScreens++;
-    attacker->smokeRound = 2; 
+    attacker->smokeRound = 2;
 
     printf("Smoke screen deployed at %c%d.\n", 'A' + y, x + 1);
 }
@@ -284,9 +348,9 @@ void checkSmokeScreen(struct Player *attacker)
             {
                 for (int j = 0; j < GRID; j++)
                 {
-                    if (attacker->grid[i][j] == 'X') 
+                    if (attacker->grid[i][j] == 'X')
                     {
-                        attacker->grid[i][j] = '~';
+                        attacker->grid[i][j] = attacker->copiedGird[i][j];
                     }
                 }
             }
@@ -312,8 +376,7 @@ void gamePlay(struct Player *attacker, struct Player *defender)
         {
             printf("Invalid command. Try again.\n");
             while (getchar() != '\n')
-                ;
-            continue;
+                continue;
         }
 
         printf("%s, enter your attack coordinates (for example, A4): ", attacker->name);
@@ -355,49 +418,21 @@ void gamePlay(struct Player *attacker, struct Player *defender)
 
 int checkWin(struct Player *player)
 {
-    for (int i = 0; i<4; i++) 
+    for (int i = 0; i < 4; i++)
     {
-        if (player->ships[i].sank == 0) 
+        if (player->ships[i].sank == 0)
         {
-            return 0; 
+            return 0;
         }
     }
     return 1;
 }
 
-int main()
+void easyMain(struct Player *p1, struct Player *p2)
 {
-    struct Player p1, p2;
-    srand(0);
-
-    printf("Choose difficulty level(easy/hard): ");
-    scanf("%s", p1.difficulty);
-    strcpy(p2.difficulty, p1.difficulty);
-
-    printf("Enter the name for Player 1: ");
-    scanf("%s", p1.name);
-    printf("Enter the name for Player 2: ");
-    scanf("%s", p2.name);
-
-    printf("For player 1:\n");
-    p1.Rsweep = 3;
-    gridStart(p1.grid);
-    shipsFR(&p1);
-    placeShip(&p1);
-    printf("Player 1's grid:\n");
-    gridDisplay(p1.grid);
-
-    printf("For player 2:\n");
-    p2.Rsweep = 3;
-    gridStart(p2.grid);
-    shipsFR(&p2);
-    placeShip(&p2);
-    printf("Player 2's grid:\n");
-    gridDisplay(p2.grid);
-
     int firstPlayer = randomFP();
-    struct Player *rnPlayer = firstPlayer == 0 ? &p1 : &p2;
-    struct Player *evilPlayer = firstPlayer == 0 ? &p2 : &p1;
+    struct Player *rnPlayer = firstPlayer == 0 ? p1 : p2;
+    struct Player *evilPlayer = firstPlayer == 0 ? p2 : p1;
 
     while (1)
     {
@@ -428,6 +463,88 @@ int main()
         struct Player *temp = rnPlayer;
         rnPlayer = evilPlayer;
         evilPlayer = temp;
+    }
+    return;
+}
+
+void hardMain(struct Player *p1, struct Player *p2)
+{
+    int firstPlayer = randomFP();
+    struct Player *rnPlayer = firstPlayer == 0 ? p1 : p2;
+    struct Player *evilPlayer = firstPlayer == 0 ? p2 : p1;
+
+    while (1)
+    {
+        for (int i = 0; i < 55; i++)
+        {
+            printf("-");
+        }
+
+        printf("\n");
+
+        printf("\n%s's turn.\n", rnPlayer->name);
+        printf("\n%s's grid:\n", rnPlayer->name);
+        gridDisplay(rnPlayer->grid);
+
+        printf("\n");
+
+        printf("Opponent's grid: \n");
+        gridDisplayOppHARD(evilPlayer->grid);
+
+        gamePlay(rnPlayer, evilPlayer);
+
+        if (checkWin(evilPlayer))
+        {
+            printf("%s wins!\n", rnPlayer->name);
+            break;
+        }
+
+        struct Player *temp = rnPlayer;
+        rnPlayer = evilPlayer;
+        evilPlayer = temp;
+    }
+    return;
+}
+
+int main()
+{
+    struct Player p1, p2;
+    srand(0);
+
+    printf("Choose difficulty level(easy/hard): ");
+    scanf("%s", p1.difficulty);
+    strcpy(p2.difficulty, p1.difficulty);
+
+    printf("Enter the name for Player 1: ");
+    scanf("%s", p1.name);
+    printf("Enter the name for Player 2: ");
+    scanf("%s", p2.name);
+
+    printf("For player 1:\n");
+    p1.Rsweep = 3;
+    p1.smokeScreens = 0;
+    gridStart(p1.grid);
+    shipsFR(&p1);
+    placeShip(&p1);
+    printf("Player 1's grid:\n");
+    gridDisplay(p1.grid);
+
+    printf("For player 2:\n");
+    p2.Rsweep = 3;
+    p2.smokeScreens = 0;
+    gridStart(p2.grid);
+    shipsFR(&p2);
+    placeShip(&p2);
+    printf("Player 2's grid:\n");
+    gridDisplay(p2.grid);
+
+    if (strcmp(p1.difficulty, "easy") == 0)
+    {
+        easyMain(&p1, &p2);
+    }
+    else if (strcmp(p1.difficulty, "hard") == 0)
+    {
+        hardMain(&p1, &p2);
     }
 
     return 0;
