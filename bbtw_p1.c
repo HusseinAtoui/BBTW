@@ -301,6 +301,8 @@ void gamePlay(struct Player *attacker, struct Player *defender)
     int x;    // x -> row
     char col; // col for column character
 
+    checkSmokeScreen(attacker);
+
     while (1)
     {
         printf("Game Play Commands: Fire / RadarSweep / SmokeScreen / Artillery / Torpedo\n");
