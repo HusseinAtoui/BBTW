@@ -233,6 +233,10 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
             if (defender->ships[i].name[0] == defender->grid[x][y])
             {
                 defender->ships[i].hits++;
+                if (defender->ships[i].hits >= defender->ships[i].size && defender->ships[i].sank == 0) {
+                    defender->ships[i].sank = 1;
+                    printf("The %s has sunk!\n", defender->ships[i].name);
+                }
             }
         }
     }
@@ -323,20 +327,14 @@ void gamePlay(struct Player *attacker, struct Player *defender)
 
 int checkWin(struct Player *player)
 {
-    int shipDone = 1;
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i<4; i++) 
     {
-        if (player->ships[i].hits >= player->ships[i].size && player->ships[i].sank == 0)
+        if (player->ships[i].sank == 0) 
         {
-            player->ships[i].sank++;
-            printf("The %s has sunk!\n", player->ships[i].name);
-        }
-        else
-        {
-            shipDone = 0;
+            return 0; 
         }
     }
-    return shipDone;
+    return 1;
 }
 
 int main()
