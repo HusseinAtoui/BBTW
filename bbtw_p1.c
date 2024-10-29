@@ -328,7 +328,7 @@ int checkWin(struct Player *player)
     {
         if (player->ships[i].hits >= player->ships[i].size && player->ships[i].sank == 0)
         {
-            player->ships[i].sank = 0;
+            player->ships[i].sank++;
             printf("The %s has sunk!\n", player->ships[i].name);
         }
         else
