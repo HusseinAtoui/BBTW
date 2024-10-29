@@ -169,52 +169,6 @@ void placeShip(struct Player *player)
     }
 }
 
-void playerTurn(struct Player *attacker, struct Player *defender)
-{
-    int x, y;
-    char col;
-
-    while (1)
-    {
-        printf("%s, enter your attack coordinates (for example, A4): ", attacker->name);
-        int read = scanf(" %c%d", &col, &x);
-        x--;
-
-        if (read != 2 || x < 0 || x >= GRID || col < 'A' || col > 'J')
-        {
-            printf("Invalid coordinates. come on try again.\n");
-            continue;
-        }
-
-        y = col - 'A';
-
-        if (defender->grid[x][y] == '*' || defender->grid[x][y] == 'o')
-        {
-            printf("You already attacked this position. yalla again.\n");
-            continue;
-        }
-
-        if (defender->grid[x][y] != '~')
-        {
-            printf("Hit at %c%d!\n", 'A' + y, x + 1);
-            defender->grid[x][y] = '*';
-            for (int i = 0; i < 4; i++)
-            {
-                if (defender->ships[i].name[0] == defender->grid[x][y])
-                {
-                    defender->ships[i].hits++;
-                }
-            }
-        }
-        else
-        {
-            printf("Miss at %c%d!\n", 'A' + y, x + 1);
-            defender->grid[x][y] = 'o';
-        }
-        break;
-    }
-}
-
 void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
 {
 
