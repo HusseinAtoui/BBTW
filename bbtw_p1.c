@@ -21,6 +21,8 @@ struct Player
     char difficulty[10];
     struct Ship ships[4];
     int Rsweep;
+    int smokeScreens;
+    int smokeRound;
 };
 
 void gridStart(char grid[GRID][GRID])
@@ -48,7 +50,6 @@ void gridDisplay(char grid[GRID][GRID])
     }
 }
 
-void gridDisplayOpp(char grid[GRID][GRID])
 {
     char NewGird[GRID][GRID];
 
@@ -63,6 +64,10 @@ void gridDisplayOpp(char grid[GRID][GRID])
             else if (grid[i][j] == 'o')
             {
                 NewGird[i][j] = 'o';
+            }
+            else if (grid[i][j] == 'X')
+            {
+                NewGird[i][j] = 'X';
             }
             else
             {
@@ -171,6 +176,11 @@ void placeShip(struct Player *player)
 
 void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
 {
+    if (defender->grid[x][y] == 'X') 
+    {
+        printf("Cannot attack, smoke screen is blocking this area at %c%d.\n", 'A' + y, x + 1);
+        return;
+    }
 
     if (defender->grid[x][y] == '*' || defender->grid[x][y] == 'o') // already attacked
     {
@@ -229,6 +239,66 @@ void RadarSweep_GP(struct Player *attacker, struct Player *defender, int x, int 
     return;
 }
 
+int countSink(struct Player *attacker){
+    int x = 0;
+    //loop over array and x++ whenever arr[i] = 1;
+    for (int i = 0; i<4; i++){
+        if (attacker->ships[i].sank == 1){
+        x++;
+        }
+    }
+    return x;
+}
+
+void smokeScreen_GP(struct Player *attacker, struct Player *defender, int x, int y)
+{
+    if (attacker->smokeScreens >= 4 - countSink(attacker)) 
+    {
+        printf("You cannt use more smoke screens than ships sunk. You lost your turn.\n");
+        return;
+    }
+    if (x < 0 || x + 1 >= GRID || y < 0 || y + 1 >= GRID) 
+    {
+        printf("Invalid smoke screen placement. Out of bounds.\n");
+        return;
+    }
+
+    for (int i = x; i<x+2 && i<GRID; i++)
+    {
+        for (int j = y; j<y+2 && j<GRID; j++)
+        {
+            attacker->grid[i][j] = 'X';
+        }
+    }
+
+    attacker->smokeScreens++;
+    attacker->smokeRound = 2; 
+
+    printf("Smoke screen deployed at %c%d.\n", 'A' + y, x + 1);
+}
+
+void checkSmokeScreen(struct Player *attacker)
+{
+    if (attacker->smokeRound > 0)
+    {
+        attacker->smokeRound--;
+        if (attacker->smokeRound == 0)
+        {
+            for (int i = 0; i < GRID; i++)
+            {
+                for (int j = 0; j < GRID; j++)
+                {
+                    if (attacker->grid[i][j] == 'X') 
+                    {
+                        attacker->grid[i][j] = '~';
+                    }
+                }
+            }
+            printf("Smoke screen effect has expired.\n");
+        }
+    }
+}
+
 void gamePlay(struct Player *attacker, struct Player *defender)
 {
     char command[15];
@@ -269,6 +339,11 @@ void gamePlay(struct Player *attacker, struct Player *defender)
         else if (strcmp(command, "RadarSweep") == 0)
         {
             RadarSweep_GP(attacker, defender, x, y);
+            break;
+        }
+        else if (strcmp(command, "SmokeScreen") == 0)
+        {
+            smokeScreen_GP(attacker, defender, x, y);
             break;
         }
         else
@@ -344,7 +419,6 @@ int main()
         printf("Opponent's grid: \n");
         gridDisplayOpp(evilPlayer->grid);
 
-        //  playerTurn(rnPlayer, evilPlayer); // gameplay instead
         gamePlay(rnPlayer, evilPlayer);
 
         if (checkWin(evilPlayer))
