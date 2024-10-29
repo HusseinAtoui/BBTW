@@ -416,21 +416,33 @@ int main()
 
     printf("For player 1:\n");
     p1.Rsweep = 3;
-    p1.artill = 1;
     gridStart(p1.grid);
     shipsFR(&p1);
     placeShip(&p1);
     printf("Player 1's grid:\n");
     gridDisplay(p1.grid);
+    while (getchar() != '\n');
+    printf("Press Enter to continue...");
+    while (getchar() != '\n');
+    for (int i = 0; i<100; i++)
+    {
+        printf("\n");
+    }
 
     printf("For player 2:\n");
     p2.Rsweep = 3;
-    p2.artill = 1;
     gridStart(p2.grid);
     shipsFR(&p2);
     placeShip(&p2);
     printf("Player 2's grid:\n");
     gridDisplay(p2.grid);
+    while (getchar() != '\n');
+    printf("Press Enter to continue...");
+    while (getchar() != '\n');
+    for (int i = 0; i<100; i++)
+    {
+        printf("\n");
+    }
 
     int firstPlayer = randomFP();
     struct Player *rnPlayer = firstPlayer == 0 ? &p1 : &p2;
