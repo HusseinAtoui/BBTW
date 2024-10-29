@@ -238,7 +238,12 @@ void RadarSweep_GP(struct Player *attacker, struct Player *defender, int x, int 
         {
             for (int j = y; j < y + 2 && j < GRID; j++)
             {
-                if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'o' && defender->grid[i][j] != '*')
+                if (defender->grid[i][j] == 'X') // Smoke screen area
+                {
+                    printf("Miss at %c%d!\n", 'A' + j, i + 1);
+                    return;
+                }
+                else if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'o' && defender->grid[i][j] != '*')
                 {
                     printf("Enemy ships found!\n");
                     return;
@@ -250,13 +255,13 @@ void RadarSweep_GP(struct Player *attacker, struct Player *defender, int x, int 
     return;
 }
 
-int countSink(struct Player *attacker)
+int countSink(struct Player *attacker, struct Player *defender)
 {
     int x = 0;
     // loop over array and x++ whenever arr[i] = 1;
     for (int i = 0; i < 4; i++)
     {
-        if (attacker->ships[i].sank == 1)
+        if (defender->ships[i].sank == 1)
         {
             x++;
         }
@@ -266,7 +271,8 @@ int countSink(struct Player *attacker)
 
 void smokeScreen_GP(struct Player *attacker, struct Player *defender, int x, int y)
 {
-    if (attacker->smokeScreens >= 4 - countSink(attacker))
+    int maxSS = countSink(attacker, defender);
+    if (attacker->smokeScreens >= maxSS)
     {
         printf("You cannt use more smoke screens than ships sunk. You lost your turn.\n");
         return;
