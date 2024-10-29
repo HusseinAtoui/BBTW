@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Phase one, Draft 5
+// Phase one, Draft 6
 
 #define GRID 10
 
@@ -50,7 +50,7 @@ void gridDisplay(char grid[GRID][GRID])
     }
 }
 
-{
+void gridDisplayOpp(char grid[GRID][GRID]){
     char NewGird[GRID][GRID];
 
     for (int i = 0; i < GRID; i++)
