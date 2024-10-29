@@ -327,7 +327,35 @@ void checkSmokeScreen(struct Player *attacker)
         }
     }
 }
+void artillery(struct Player *attacker, struct Player *defender, int x, int y) {
+    if (attacker->artill == 0){ 
+        printf("You have already used this function before, can't use it \n");
+        return;
+    } 
+     else if (!attacker->shot ){ 
+        printf("This function cant be used yet, player %s has not sunk one of your ships\n" , defender->name );
+        return;
+    } 
+    else {
+            for (int i = x; i < x + 2 && i < GRID; i++) {
+            for (int j = y; j < y + 2 && j < GRID; j++) {
+                if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'o' && defender->grid[i][j] != '*') {
+                    printf("Hit at %c%d!\n", 'A' + j, i + 1);
+                    defender->grid[i][j] = '*';
 
+                } else {
+                    printf("Miss at %c%d!\n",  'A' + j, i + 1);
+                    defender->grid[i][j] = 'o';
+                }
+            }
+        } 
+        attacker->artill = 0;
+        attacker-> shot = false;
+    }
+    
+    
+
+}
 void gamePlay(struct Player *attacker, struct Player *defender)
 {
     char command[15];
