@@ -65,10 +65,6 @@ void gridDisplayOpp(char grid[GRID][GRID]){
             {
                 NewGird[i][j] = 'o';
             }
-            else if (grid[i][j] == 'X')
-            {
-                NewGird[i][j] = 'X';
-            }
             else
             {
                 NewGird[i][j] = '~';
