@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
-// Phase one, running correclty up until smoke screen
+// BattleShips Beneath The Waves - Phase 1 - Submitted version 
 
 #define GRID 10
 
@@ -24,6 +25,10 @@ struct Player
     int Rsweep;
     int smokeScreens;
     int smokeRound;
+    int artill;
+    bool shot;
+    int tor;
+    int torCount;
 };
 
 void gridStart(char grid[GRID][GRID])
@@ -214,6 +219,20 @@ void placeShip(struct Player *player)
     }
 }
 
+int countSink(struct Player *attacker, struct Player *defender)
+{
+    int x = 0;
+    // loop over array and x++ whenever arr[i] = 1;
+    for (int i = 0; i < 4; i++)
+    {
+        if (defender->ships[i].sank == 1)
+        {
+            x++;
+        }
+    }
+    return x;
+}
+
 void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
 {
     if (defender->grid[x][y] == 'X')
@@ -246,6 +265,7 @@ void fire_GP(struct Player *attacker, struct Player *defender, int x, int y)
                 {
                     defender->ships[i].sank = 1;
                     printf("The %s has sunk!\n", defender->ships[i].name);
+                    attacker->shot = true;
                 }
             }
         }
@@ -291,20 +311,6 @@ void RadarSweep_GP(struct Player *attacker, struct Player *defender, int x, int 
     }
     printf("No enemy ships found\n");
     return;
-}
-
-int countSink(struct Player *attacker, struct Player *defender)
-{
-    int x = 0;
-    // loop over array and x++ whenever arr[i] = 1;
-    for (int i = 0; i < 4; i++)
-    {
-        if (defender->ships[i].sank == 1)
-        {
-            x++;
-        }
-    }
-    return x;
 }
 
 void smokeScreen_GP(struct Player *attacker, struct Player *defender, int x, int y)
@@ -359,6 +365,102 @@ void checkSmokeScreen(struct Player *attacker)
     }
 }
 
+void artillery(struct Player *attacker, struct Player *defender, int x, int y)
+{
+    if (attacker->artill == 0)
+    {
+        printf("You have already used this function before, can't use it \n");
+        return;
+    }
+    else if (!attacker->shot)
+    {
+        printf("You cannot use artillery because you did not sink a ship in your last turn.\n");
+        return;
+    }
+    if (x < 0 || x + 1 >= GRID || y < 0 || y + 1 >= GRID)
+    {
+        printf("Invalid artillery placement. Out of bounds.\n");
+        return;
+    }
+    for (int i = x; i < x + 2 && i < GRID; i++)
+    {
+        for (int j = y; j < y + 2 && j < GRID; j++)
+        {
+            if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'o' && defender->grid[i][j] != '*')
+            {
+                printf("Hit at %c%d!\n", 'A' + j, i + 1);
+                defender->grid[i][j] = '*';
+            }
+            else
+            {
+                printf("Miss at %c%d!\n", 'A' + j, i + 1);
+                defender->grid[i][j] = 'o';
+            }
+        }
+    }
+    attacker->artill = 0;
+    attacker->shot = false;
+}
+
+void torpedo(struct Player *attacker, struct Player *defender, char *type)
+{
+
+    if (attacker->torCount == 0)
+    {
+        attacker->tor = countSink(attacker, defender);
+        attacker->torCount++;
+    }
+
+    if (attacker->tor == 0)
+    {
+        printf("You cannot use Torpedo at this time.\n");
+        return;
+    }
+
+    int h = (*type >= 'A' && *type <= 'J');
+    int v = (*type >= '1' && *type <= '9');
+
+    if (h)
+    {
+        int y = *type - 'A';
+        for (int i = 0; i < GRID; i++)
+        {
+            if (defender->grid[i][y] != '~' && defender->grid[i][y] != 'o')
+            {
+                defender->grid[i][y] = '*';
+                printf("Hit at %c%d!\n", *type, i + 1);
+            }
+            else
+            {
+                defender->grid[i][y] = 'o';
+                printf("Miss at %c%d!\n", *type, i + 1);
+            }
+        }
+    }
+    else if (v)
+    {
+        int y = atoi(type) - 1;
+        for (int i = 0; i < GRID; i++)
+        {
+            if (defender->grid[i][y] != '~' && defender->grid[y][i] != 'o')
+            {
+                defender->grid[y][i] = '*';
+                printf("Hit at %c%d!\n", 'A' + i, y + 1);
+            }
+            else
+            {
+                defender->grid[y][i] = 'o';
+                printf("Miss at %c%d!\n", 'A' + i, y + 1);
+            }
+        }
+    }
+    else
+    {
+        printf("Invalid torpedo input.\n");
+    }
+    attacker->tor = 0;
+}
+
 void gamePlay(struct Player *attacker, struct Player *defender)
 {
     char command[15];
@@ -379,14 +481,18 @@ void gamePlay(struct Player *attacker, struct Player *defender)
                 continue;
         }
 
-        printf("%s, enter your attack coordinates (for example, A4): ", attacker->name);
-
-        if (scanf(" %c%d", &col, &x) != 2 || x < 1 || x > GRID || col < 'A' || col >= 'A' + GRID)
+        // coordinates
+        if (strcmp(command, "Fire") == 0 || strcmp(command, "RadarSweep") == 0 || strcmp(command, "SmokeScreen") == 0 || strcmp(command, "Artillery") == 0)
         {
-            printf("Invalid coordinates. Please try again.\n");
-            while (getchar() != '\n')
-                ;
-            continue;
+            printf("%s, enter your attack coordinates (for example, A4): ", attacker->name);
+
+            if (scanf(" %c%d", &col, &x) != 2 || x < 1 || x > GRID || col < 'A' || col >= 'A' + GRID)
+            {
+                printf("Invalid coordinates. Please try again.\n");
+                while (getchar() != '\n')
+                    ;
+                continue;
+            }
         }
 
         x--;
@@ -407,6 +513,30 @@ void gamePlay(struct Player *attacker, struct Player *defender)
             smokeScreen_GP(attacker, defender, x, y);
             break;
         }
+        else if (strcmp(command, "Artillery") == 0)
+        {
+            artillery(attacker, defender, x, y);
+            break;
+        }
+        else if (strcmp(command, "Torpedo") == 0)
+        {
+            char ty;
+            printf("Enter your attack coordinates (for example, A or 3): ");
+            char tortype[3];
+            scanf("%s", tortype);
+
+            if ((tortype[0] >= 'A' && tortype[0] <= 'J') || (tortype[0] >= '1' && tortype[0] <= '9') || (tortype[0] == '1' && tortype[0] == '0'))
+            {
+                torpedo(attacker, defender, tortype);
+                break;
+            }
+            else
+            {
+                printf("Invalid coordinate. ");
+                continue;
+            }
+        }
+
         else
         {
             printf("Unknown command or incorrect format. Try again.\n");
@@ -444,8 +574,6 @@ void easyMain(struct Player *p1, struct Player *p2)
         printf("\n");
 
         printf("\n%s's turn.\n", rnPlayer->name);
-        printf("\n%s's grid:\n", rnPlayer->name);
-        gridDisplay(rnPlayer->grid);
 
         printf("\n");
 
@@ -523,20 +651,46 @@ int main()
     printf("For player 1:\n");
     p1.Rsweep = 3;
     p1.smokeScreens = 0;
+    p1.torCount = 0;
+    p1.shot = false;
+    p1.artill = 1;
     gridStart(p1.grid);
     shipsFR(&p1);
     placeShip(&p1);
     printf("Player 1's grid:\n");
     gridDisplay(p1.grid);
 
+    while (getchar() != '\n')
+        ;
+    printf("Press Enter to continue...");
+    while (getchar() != '\n')
+        ;
+    for (int i = 0; i < 100; i++)
+    {
+        printf("\n");
+    }
+
     printf("For player 2:\n");
     p2.Rsweep = 3;
     p2.smokeScreens = 0;
+    p2.torCount = 0;
+    p2.shot = false;
+    p2.artill = 1;
     gridStart(p2.grid);
     shipsFR(&p2);
     placeShip(&p2);
     printf("Player 2's grid:\n");
     gridDisplay(p2.grid);
+
+    while (getchar() != '\n')
+        ;
+    printf("Press Enter to continue...");
+    while (getchar() != '\n')
+        ;
+    for (int i = 0; i < 100; i++)
+    {
+        printf("\n");
+    }
 
     if (strcmp(p1.difficulty, "easy") == 0)
     {
