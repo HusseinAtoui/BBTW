@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h>
 
-// BattleShips Beneath The Waves - Phase 1
+// BattleShips Beneath The Waves - Phase 2 - Start
 
 #define GRID 10
 
@@ -138,7 +139,7 @@ int randomFP()
     return rand() % 2;
 }
 
-void shipsFR(struct Player *player)
+void createShip(struct Player *player)
 {
     player->ships[0] = (struct Ship){"Carrier", 5, 0, 0};
     player->ships[1] = (struct Ship){"Battleship", 4, 0, 0};
@@ -171,22 +172,24 @@ int canPlaceShip(char grid[GRID][GRID], int x, int y, int size, char dir)
     return 1;
 }
 
-void placeShip(struct Player *player)
-{
-    for (int i = 0; i < 4; i++)
-    {
+void placeShip(struct Player *player) {
+    for (int i = 0; i < 4; i++) {
         struct Ship *ship = &player->ships[i];
         int x, y;
 
-        while (1)
-        {
-            printf("Enter the coordinates for the %s (%d) (foe example, D7 h or v): ", ship->name, ship->size);
+        while (1) {
+            printf("Enter the coordinates for the %s (%d) (for example, D7 h or v): ", ship->name, ship->size);
             char col, dir;
             int read = scanf(" %c%d %c", &col, &x, &dir);
-            x--;
 
-            if (read != 3 || x < 0 || x >= GRID || col < 'A' || col > 'J')
-            {
+            // Convert `col` and `dir` to uppercase to make them case-insensitive
+            col = toupper((unsigned char)col);
+            dir = toupper((unsigned char)dir);
+
+            x--;  // Adjust `x` to zero-based index
+
+            // Validate the input for column range and grid bounds
+            if (read != 3 || x < 0 || x >= GRID || col < 'A' || col > 'J') {
                 printf("Invalid input. Please try again.\n");
                 while (getchar() != '\n')
                     ;
@@ -195,24 +198,18 @@ void placeShip(struct Player *player)
 
             y = col - 'A';
 
-            if (dir == 'h' && canPlaceShip(player->grid, x, y, ship->size, 'h'))
-            {
-                for (int j = y; j < y + ship->size; j++)
-                {
+            // Check placement based on direction and place the ship if possible
+            if (dir == 'H' && canPlaceShip(player->grid, x, y, ship->size, 'h')) {
+                for (int j = y; j < y + ship->size; j++) {
                     player->grid[x][j] = ship->name[0];
                 }
                 break;
-            }
-            else if (dir == 'v' && canPlaceShip(player->grid, x, y, ship->size, 'v'))
-            {
-                for (int j = x; j < x + ship->size; j++)
-                {
+            } else if (dir == 'V' && canPlaceShip(player->grid, x, y, ship->size, 'v')) {
+                for (int j = x; j < x + ship->size; j++) {
                     player->grid[j][y] = ship->name[0];
                 }
                 break;
-            }
-            else
-            {
+            } else {
                 printf("Invalid placement for %s. Try again.\n", ship->name);
             }
         }
@@ -461,87 +458,84 @@ void torpedo(struct Player *attacker, struct Player *defender, char *type)
     attacker->tor = 0;
 }
 
-void gamePlay(struct Player *attacker, struct Player *defender)
-{
-    char command[15];
-    int x;    // x -> row
-    char col; // col for column character
+void gamePlay(struct Player *attacker, struct Player *defender) {
+    char input[30];     
+    char command[15];   
+    int row;              //  -> row (integer part of coordinates)
+    char col;           // col -> column (character part of coordinates)
 
     checkSmokeScreen(attacker);
 
-    while (1)
-    {
-        printf("Game Play Commands: Fire / RadarSweep / SmokeScreen / Artillery / Torpedo\n");
-        printf("%s, Enter your Command (For example, Fire): ", attacker->name);
+    while (1) {
+        printf("\nGame Play Commands options:\n1) Fire - Basic Attack, Free Use\n2) RadarSweep - 2x2 Area Ships Reveal, 3 Times Usage only");
+        printf("\n3) SmokeScreen - 2x2 Area Ships Hide (2 Rounds Only), One Usage Per Ship Sunk \n4) Artillery - Fire Attack 2x2 Area, Next Turn After Sinking A Ship");
+        printf("\n5) Torpedo - Entire Row Or Column Attack, Next Turn After Sinking 3rd Ship\n\n");
+        printf("%s, Enter your Command and Coordinates (e.g., Fire B4): ", attacker->name);
 
-        if (scanf("%14s", command) != 1)
-        {
-            printf("Invalid command. Try again.\n");
-            while (getchar() != '\n')
-                continue;
+        
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            printf("Error reading input. Please try again.\n");
+            continue;
         }
 
-        // coordinates
-        if (strcmp(command, "Fire") == 0 || strcmp(command, "RadarSweep") == 0 || strcmp(command, "SmokeScreen") == 0 || strcmp(command, "Artillery") == 0)
-        {
-            printf("%s, enter your attack coordinates (for example, A4): ", attacker->name);
+        
+        if (sscanf(input, "%14s %c%d", command, &col, &row) == 3) {
+            
+            
+            for (int i = 0; command[i]; i++) {
+                command[i] = tolower((unsigned char) command[i]);
+            }
 
-            if (scanf(" %c%d", &col, &x) != 2 || x < 1 || x > GRID || col < 'A' || col >= 'A' + GRID)
-            {
-                printf("Invalid coordinates. Please try again.\n");
-                while (getchar() != '\n')
-                    ;
+            
+            if (col >= 'a' && col <= 'j') {
+                col = col - 'a' + 'A';
+            }
+
+            
+            if (row < 1 || row > GRID || col < 'A' || col >= 'A' + GRID) {
+                printf("Invalid coordinates. Row must be A-J and column 1-10.\n");
                 continue;
             }
-        }
 
-        x--;
-        int y = col - 'A';
+            row--;                   
+            int newCol = col - 'A';     
 
-        if (strcmp(command, "Fire") == 0)
-        {
-            fire_GP(attacker, defender, x, y);
-            break;
-        }
-        else if (strcmp(command, "RadarSweep") == 0)
-        {
-            RadarSweep_GP(attacker, defender, x, y);
-            break;
-        }
-        else if (strcmp(command, "SmokeScreen") == 0)
-        {
-            smokeScreen_GP(attacker, defender, x, y);
-            break;
-        }
-        else if (strcmp(command, "Artillery") == 0)
-        {
-            artillery(attacker, defender, x, y);
-            break;
-        }
-        else if (strcmp(command, "Torpedo") == 0)
-        {
-            char ty;
-            printf("Enter your attack coordinates (for example, A or 3): ");
-            char tortype[3];
-            scanf("%s", tortype);
-
-            if ((tortype[0] >= 'A' && tortype[0] <= 'J') || (tortype[0] >= '1' && tortype[0] <= '9') || (tortype[0] == '1' && tortype[0] == '0'))
-            {
-                torpedo(attacker, defender, tortype);
+            
+            if (strcmp(command, "fire") == 0) {
+                fire_GP(attacker, defender, row, newCol);
                 break;
+            } else if (strcmp(command, "radarsweep") == 0) {
+                RadarSweep_GP(attacker, defender, row, newCol);
+                break;
+            } else if (strcmp(command, "smokescreen") == 0) {
+                smokeScreen_GP(attacker, defender, row, newCol);
+                break;
+            } else if (strcmp(command, "artillery") == 0) {
+                artillery(attacker, defender, row, newCol);
+                break;
+            } else {
+                printf("Unknown command or incorrect format. Please try again.\n");
             }
-            else
-            {
-                printf("Invalid coordinate. ");
-                continue;
-            }
-        }
 
-        else
-        {
-            printf("Unknown command or incorrect format. Try again.\n");
-            while (getchar() != '\n')
-                ;
+        } else if (sscanf(input, "%14s %2s", command, input) == 2) {
+            // Convert command to lowercase for the Torpedo case as well
+            for (int i = 0; command[i]; i++) {
+                command[i] = tolower((unsigned char) command[i]);
+            }
+
+            if (strcmp(command, "torpedo") == 0) {
+                // Handle Torpedo command
+                if ((input[0] >= 'A' && input[0] <= 'J') || (input[0] >= '1' && input[0] <= '9') || strcmp(input, "10") == 0) {
+                    torpedo(attacker, defender, input);
+                    break;
+                } else {
+                    printf("Invalid Torpedo coordinate. Please enter a row (A-J) or column (1-10).\n");
+                }
+            }  else {
+                printf("Invalid Torpedo coordinate. Please enter a row (A-J) or column (1-10).\n");
+            }
+        } else {
+            printf("Invalid input format. Please enter both command and coordinates.\n");
         }
     }
 }
@@ -566,10 +560,12 @@ void easyMain(struct Player *p1, struct Player *p2)
 
     while (1)
     {
-        for (int i = 0; i < 55; i++)
+        printf("════");
+        for (int i = 0; i < 5; i++)
         {
-            printf("-");
+            printf("════  ⚓ ════");
         }
+        printf("════");
 
         printf("\n");
 
@@ -603,16 +599,16 @@ void hardMain(struct Player *p1, struct Player *p2)
 
     while (1)
     {
-        for (int i = 0; i < 55; i++)
+        printf("════");
+        for (int i = 0; i < 5; i++)
         {
-            printf("-");
+            printf("════  ⚓ ════");
         }
+        printf("════");
 
         printf("\n");
 
-        printf("\n%s's turn.\n", rnPlayer->name);
-        printf("\n%s's grid:\n", rnPlayer->name);
-        gridDisplay(rnPlayer->grid);
+        printf("\n%s's turn.\n", rnPlayer->name);    
 
         printf("\n");
 
@@ -636,11 +632,29 @@ void hardMain(struct Player *p1, struct Player *p2)
 
 int main()
 {
-    struct Player p1, p2;
+     struct Player p1, p2;
     srand(0);
+    
+    char difficulty[10];
+    
+    while (1) {
+        printf("Choose difficulty level (easy/hard): ");
+        scanf("%s", difficulty);
 
-    printf("Choose difficulty level(easy/hard): ");
-    scanf("%s", p1.difficulty);
+        // Convert to lowercase for case-insensitive comparison
+        for (int i = 0; difficulty[i] != '\0'; i++) {
+            difficulty[i] = tolower((unsigned char)difficulty[i]);
+        }
+
+        if (strcmp(difficulty, "easy") == 0 || strcmp(difficulty, "hard") == 0) {
+            break; 
+        } else {
+            printf("Invalid choice. Please enter 'easy' or 'hard'.\n");
+        }
+    }
+
+    strcpy(p1.difficulty, difficulty);
+
     strcpy(p2.difficulty, p1.difficulty);
 
     printf("Enter the name for Player 1: ");
@@ -655,7 +669,7 @@ int main()
     p1.shot = false;
     p1.artill = 1;
     gridStart(p1.grid);
-    shipsFR(&p1);
+    createShip(&p1);
     placeShip(&p1);
     printf("Player 1's grid:\n");
     gridDisplay(p1.grid);
@@ -677,7 +691,7 @@ int main()
     p2.shot = false;
     p2.artill = 1;
     gridStart(p2.grid);
-    shipsFR(&p2);
+    createShip(&p2);
     placeShip(&p2);
     printf("Player 2's grid:\n");
     gridDisplay(p2.grid);
