@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-// BattleShips Beneath The Waves - Phase 2 - Start
+// BattleShips Beneath The Waves - Phase 2 - correct reading
 
 #define GRID 10
 
@@ -21,6 +21,7 @@ struct Player
     char name[50];
     char grid[GRID][GRID];
     char copiedGird[GRID][GRID];
+    char hitMissGrid[GRID][GRID];
     char difficulty[10];
     struct Ship ships[4];
     int Rsweep;
@@ -30,6 +31,15 @@ struct Player
     bool shot;
     int tor;
     int torCount;
+    int botTurn;
+
+    int lastHit;    // 0 for miss, 1 for hit
+    int lastHitRow; // Row index of the last hit
+    int lastHitCol; // Column index of the last hit
+    int botleft;
+    int botright;
+    int botup;
+    int botdown;
 };
 
 void gridStart(char grid[GRID][GRID])
@@ -134,6 +144,17 @@ void gridCopy(char grid[GRID][GRID], char copyGrid[GRID][GRID])
     }
 }
 
+void initHitMissGrid(char grid[GRID][GRID])
+{
+    for (int i = 0; i < GRID; i++)
+    {
+        for (int j = 0; j < GRID; j++)
+        {
+            grid[i][j] = '~';
+        }
+    }
+}
+
 int randomFP()
 {
     return rand() % 2;
@@ -147,25 +168,25 @@ void createShip(struct Player *player)
     player->ships[3] = (struct Ship){"Submarine", 2, 0, 0};
 }
 
-int canPlaceShip(char grid[GRID][GRID], int row, int col, int size, char dir)
+int canPlaceShip(char grid[GRID][GRID], int x, int y, int size, char dir)
 {
     if (dir == 'h')
     {
-        if (col + size > GRID)
+        if (y + size > GRID)
             return 0;
-        for (int j = col; j < col + size; j++)
+        for (int j = y; j < y + size; j++)
         {
-            if (grid[row][j] != '~')
+            if (grid[x][j] != '~')
                 return 0;
         }
     }
     else if (dir == 'v')
     {
-        if (row + size > GRID)
+        if (x + size > GRID)
             return 0;
-        for (int i = row; i < col + size; i++)
+        for (int i = x; i < x + size; i++)
         {
-            if (grid[i][col] != '~')
+            if (grid[i][y] != '~')
                 return 0;
         }
     }
@@ -185,13 +206,10 @@ void placeShip(struct Player *player)
             char col, dir;
             int read = scanf(" %c%d %c", &col, &x, &dir);
 
-            // Convert `col` and `dir` to uppercase to make them case-insensitive
             col = toupper((unsigned char)col);
             dir = toupper((unsigned char)dir);
+            x--;
 
-            x--; // Adjust `x` to zero-based index
-
-            // Validate the input for column range and grid bounds
             if (read != 3 || x < 0 || x >= GRID || col < 'A' || col > 'J')
             {
                 printf("Invalid input. Please try again.\n");
@@ -202,7 +220,6 @@ void placeShip(struct Player *player)
 
             y = col - 'A';
 
-            // Check placement based on direction and place the ship if possible
             if (dir == 'H' && canPlaceShip(player->grid, x, y, ship->size, 'h'))
             {
                 for (int j = y; j < y + ship->size; j++)
@@ -222,6 +239,51 @@ void placeShip(struct Player *player)
             else
             {
                 printf("Invalid placement for %s. Try again.\n", ship->name);
+            }
+        }
+    }
+}
+
+void BOTPlaceShips(struct Player *player)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        struct Ship *ship = &player->ships[i];
+        int row, col;
+        char dir;
+
+        while (1)
+        {
+
+            dir = (rand() % 2 == 0) ? 'h' : 'v';
+            if (dir == 'h')
+            {
+                row = rand() % GRID;
+                col = rand() % (GRID - ship->size + 1); // ensures length of ship fits
+            }
+            else
+            {
+                row = rand() % (GRID - ship->size + 1); // ensures length of ship fits
+                col = rand() % GRID;
+            }
+
+            if (canPlaceShip(player->grid, row, col, ship->size, dir))
+            {
+                if (dir == 'h')
+                {
+                    for (int j = col; j < col + ship->size; j++) // starting col + size ship
+                    {
+                        player->grid[row][j] = ship->name[0];
+                    }
+                }
+                else
+                {
+                    for (int j = row; j < row + ship->size; j++) // starting row + size ship
+                    {
+                        player->grid[j][col] = ship->name[0];
+                    }
+                }
+                break;
             }
         }
     }
@@ -569,6 +631,199 @@ void gamePlay(struct Player *attacker, struct Player *defender)
     }
 }
 
+/*
+void BOTFireball(struct Player *attacker, struct Player *defender)
+{
+    int x = -1, y = -1;
+    for (int i = 0; i < GRID; i++)
+    {
+        for (int j = 0; j < GRID; j++)
+        {
+            if (defender->grid[i][j] == 'o' && defender->grid[i][j] != '~')
+            {
+                int directions[4] = {0, 1, 2, 3};
+                for (int k = 0; k < 4; k++)
+                {
+                    int r = rand() % 4;
+                    int temp = directions[k];
+                    directions[k] = directions[r];
+                    directions[r] = temp;
+                }
+                for (int d = 0; d < 4; d++)
+                {
+                    int xx = i, yy = j;
+                    if (directions[d] == 0)
+                        xx--; // up
+                    else if (directions[d] == 1)
+                        xx++; // down
+                    else if (directions[d] == 2)
+                        yy--; // lfet
+                    else if (directions[d] == 3)
+                        yy++; // right
+                    if (xx >= 0 && xx < GRID && yy >= 0 && yy < GRID &&
+                        defender->grid[xx][yy] != '*' && defender->grid[xx][yy] != 'o')
+                    {
+                        x = xx;
+                        y = yy;
+                        break;
+                    }
+                }
+                if (x != -1 && y != -1)
+                    break;
+            }
+        }
+        if (x != -1 && y != -1)
+            break;
+    }
+    if (x == -1 && y == -1)
+    {
+        x = rand() % GRID;
+        y = rand() % GRID;
+    }
+    fire_GP(attacker, defender, x, y);
+}*/
+
+void BOTFireball(struct Player *attacker, struct Player *defender)
+{
+    int row, col;
+
+    // Directions array for adjacent cells: Up, Down, Left, Right
+    int directions[4][2] = {
+        {-1, 0}, // Up
+        {1, 0},  // Down
+        {0, -1}, // Left
+        {0, 1},  // Right
+    };
+
+    /*
+    if (attacker->lastHit = 1)
+    {
+        if (true) // left
+        {
+            row = attacker->lastHitRow;
+            col = attacker->lastHitCol - 1; // Left is column - 1
+
+            if (col > 0 && defender->grid[row][col] != '*' && defender->grid[row][col] != 'o')
+            {
+                fire_GP(attacker, defender, row, col);
+                if (defender->grid[row][col] == '*')
+                {
+                    attacker->botleft = 1;
+                }
+            }
+        }
+        return;
+    }
+    */
+
+    // random
+    do
+    {
+        row = rand() % 10;
+        col = rand() % 10;
+    } while (defender->grid[row][col] == '*' || defender->grid[row][col] == 'o');
+
+    fire_GP(attacker, defender, row, col);
+
+    if (defender->grid[row][col] == '*')
+    {
+        attacker->lastHit = 1;
+        attacker->lastHitRow = row;
+        attacker->lastHitCol = col;
+    }
+    else
+    {
+        attacker->lastHit = 0;
+    }
+
+    printf("Bot fired at position: (%d, %d). Result: %s\n",
+           row, col, (defender->grid[row][col] == '*' ? "Hit" : "Miss"));
+}
+
+void BOTGamePlay(struct Player *attacker, struct Player *defender)
+{
+    char command[15];
+    int row;
+    char col;
+
+    checkSmokeScreen(attacker);
+
+    while (1)
+    {
+
+        int randComm = (rand()) % 3;
+
+        if (attacker->artill == 1 && attacker->shot) // artil
+        {
+            // chose random nb row or col,  will decide randomly which to choose
+            int row;
+            char col;
+
+            row = rand() % (GRID - 1);
+            printf("\n%d", row);
+
+            col = 'A' + (rand() % (GRID - 1)); // ensures bounds
+            printf("\n%c", col);
+
+            int colIndex = col - 'A';
+
+            artillery(attacker, defender, row, colIndex);
+            break;
+        }
+        else if (countSink(attacker, defender) >= 3 && attacker->torCount == 0) // torpedo
+        {
+            if (attacker->lastHit) // generates depending on the last
+            {
+                int row_or_col = rand() % 2;
+                char type[3];
+
+                if (row_or_col == 0)
+                {
+                    // use last row to get it
+                    sprintf(type, "%d", attacker->lastHitRow);
+                }
+                else
+                {
+
+                    type[0] = 'A' + attacker->lastHitCol; // Convert column index to letter
+                    type[1] = '\0';
+                }
+
+                torpedo(attacker, defender, type);
+                break;
+            }
+            else
+            {
+                // random
+
+                int row_or_col = rand() % 2; // chose random nb for row or col, and will decide randomly which to choose late
+                char type[3];
+
+                if (row_or_col == 0)
+                {
+                    int row = rand() % GRID + 1; // got rand nb
+                    sprintf(type, "%d", row);    // converts from string to char
+                }
+                else
+                {
+                    char col = 'A' + (rand() % GRID); // gets rand letter
+                    type[0] = col;
+                    type[1] = '\0';
+                }
+
+                torpedo(attacker, defender, type);
+                break;
+            }
+            break;
+        }
+        else
+        {
+            gamePlay(attacker, defender);
+            break;
+        }
+    }
+}
+
 int checkWin(struct Player *player)
 {
     for (int i = 0; i < 4; i++)
@@ -659,41 +914,119 @@ void hardMain(struct Player *p1, struct Player *p2)
     return;
 }
 
+void botMain(struct Player *p1, struct Player *p2)
+{
+    int firstPlayer = randomFP();
+    struct Player *rnPlayer = firstPlayer == 0 ? p1 : p2;
+    struct Player *evilPlayer = firstPlayer == 0 ? p2 : p1;
+
+    while (1)
+    {
+        printf("════");
+        for (int i = 0; i < 5; i++)
+        {
+            printf("════  ⚓ ════");
+        }
+        printf("════");
+
+        printf("\n");
+
+        printf("\n%s's turn.\n", rnPlayer->name);
+
+        printf("\n");
+
+        printf("Opponent's grid: \n");
+        gridDisplayOpp(evilPlayer->grid);
+
+        if (strcmp(rnPlayer->name, "Bob") == 0)
+        {
+            BOTGamePlay(rnPlayer, evilPlayer);
+        }
+        else
+        {
+            gamePlay(rnPlayer, evilPlayer);
+        }
+
+        if (checkWin(evilPlayer))
+        {
+            printf("%s wins!\n", rnPlayer->name);
+            break;
+        }
+
+        struct Player *temp = rnPlayer;
+        rnPlayer = evilPlayer;
+        evilPlayer = temp;
+    }
+    return;
+}
+
 int main()
 {
     struct Player p1, p2;
     srand(0);
 
-    char difficulty[10];
+    int numPlayers;
 
     while (1)
     {
-        printf("Choose difficulty level (easy/hard): ");
-        scanf("%s", difficulty);
+        printf("Are there 1 or 2 players? (1 or 2): ");
+        scanf("%d", &numPlayers);
 
-        for (int i = 0; difficulty[i] != '\0'; i++)
-        {
-            difficulty[i] = tolower((unsigned char)difficulty[i]);
-        }
-
-        if (strcmp(difficulty, "easy") == 0 || strcmp(difficulty, "hard") == 0)
+        if (numPlayers == 1 || numPlayers == 2)
         {
             break;
         }
         else
         {
-            printf("Invalid choice. Please enter 'easy' or 'hard'.\n");
+            printf("Invalid choice. Please enter '1' or '2'.\n");
         }
     }
 
-    strcpy(p1.difficulty, difficulty);
+    char difficulty[10];
 
+    if (numPlayers == 2)
+    {
+        while (1)
+        {
+            printf("Choose difficulty level (easy/hard): ");
+            scanf("%s", difficulty);
+
+            for (int i = 0; difficulty[i] != '\0'; i++)
+            {
+                difficulty[i] = tolower((unsigned char)difficulty[i]);
+            }
+
+            if (strcmp(difficulty, "easy") == 0 || strcmp(difficulty, "hard") == 0)
+            {
+                break;
+            }
+            else
+            {
+                printf("Invalid choice. Please enter 'easy' or 'hard'.\n");
+            }
+        }
+    }
+    else
+    {
+        strcpy(difficulty, "easy");
+    }
+
+    strcpy(p1.difficulty, difficulty);
     strcpy(p2.difficulty, p1.difficulty);
 
     printf("Enter the name for Player 1: ");
     scanf("%s", p1.name);
-    printf("Enter the name for Player 2: ");
-    scanf("%s", p2.name);
+
+    if (numPlayers == 2)
+    {
+        printf("Enter the name for Player 2: ");
+        scanf("%s", p2.name);
+    }
+    else
+    {
+        strcpy(p2.name, "Bob");
+        printf("You are playing against our bot, Bob!\n");
+    }
 
     printf("For player 1:\n");
     p1.Rsweep = 3;
@@ -701,6 +1034,7 @@ int main()
     p1.torCount = 0;
     p1.shot = false;
     p1.artill = 1;
+    p1.lastHit = 0;
     gridStart(p1.grid);
     createShip(&p1);
     placeShip(&p1);
@@ -717,35 +1051,64 @@ int main()
         printf("\n");
     }
 
-    printf("For player 2:\n");
-    p2.Rsweep = 3;
-    p2.smokeScreens = 0;
-    p2.torCount = 0;
-    p2.shot = false;
-    p2.artill = 1;
-    gridStart(p2.grid);
-    createShip(&p2);
-    placeShip(&p2);
-    printf("Player 2's grid:\n");
-    gridDisplay(p2.grid);
-
-    while (getchar() != '\n')
-        ;
-    printf("Press Enter to continue...");
-    while (getchar() != '\n')
-        ;
-    for (int i = 0; i < 100; i++)
+    if (numPlayers == 2)
     {
-        printf("\n");
+        printf("For player 2:\n");
+        p2.Rsweep = 3;
+        p2.smokeScreens = 0;
+        p2.torCount = 0;
+        p2.shot = false;
+        p2.artill = 1;
+        p2.lastHit = 0;
+        gridStart(p2.grid);
+        createShip(&p2);
+        placeShip(&p2);
+        printf("Player 2's grid:\n");
+        gridDisplay(p2.grid);
+
+        while (getchar() != '\n')
+            ;
+        printf("Press Enter to continue...");
+        while (getchar() != '\n')
+            ;
+        for (int i = 0; i < 100; i++)
+        {
+            printf("\n");
+        }
+    }
+    else
+    {
+        printf("For Player 2 (Bob):\n");
+        p2.Rsweep = 3;
+        p2.smokeScreens = 0;
+        p2.torCount = 0;
+        p2.shot = false;
+        p2.artill = 1;
+        p2.botTurn = 0;
+        p2.lastHit = 0;
+        gridStart(p2.grid);
+        createShip(&p2);
+        BOTPlaceShips(&p2);
+        // wont display
+        // printf("Bob's Grid:\n");
+        // gridDisplay(p2.grid);
+        printf("Bob's Gird has been created successfully!\n");
     }
 
-    if (strcmp(p1.difficulty, "easy") == 0)
+    if (numPlayers == 1)
     {
-        easyMain(&p1, &p2);
+        botMain(&p1, &p2);
     }
-    else if (strcmp(p1.difficulty, "hard") == 0)
+    else
     {
-        hardMain(&p1, &p2);
+        if (strcmp(p1.difficulty, "easy") == 0)
+        {
+            easyMain(&p1, &p2);
+        }
+        else if (strcmp(p1.difficulty, "hard") == 0)
+        {
+            hardMain(&p1, &p2);
+        }
     }
 
     return 0;
