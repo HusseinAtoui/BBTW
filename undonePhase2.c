@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-// BattleShips Beneath The Waves - Phase 2 - correct fire
+// BattleShips Beneath The Waves - Phase 2 - correct fire and smoke screen
 
 #define GRID 10
 
@@ -26,7 +26,7 @@ struct Player
     char copiedGird[GRID][GRID];
     char hitMissGrid[GRID][GRID];
     char difficulty[10];
-    struct Ship ships[4];
+    struct Ship ships[7];
     int Rsweep;
     int smokeScreens;
     int smokeRound;
@@ -160,10 +160,10 @@ int randomFP()
 
 void createShip(struct Player *player)
 {
-    player->ships[0] = (struct Ship){"Carrier", 5, 0, 0, 0,0,0};
-    player->ships[1] = (struct Ship){"Battleship", 4, 0, 0,0,0,0};
-    player->ships[2] = (struct Ship){"Destroyer", 3, 0, 0, 0 , 0 ,0};
-    player->ships[3] = (struct Ship){"Submarine", 2, 0, 0, 0 , 0,0};
+    player->ships[0] = (struct Ship){"Carrier", 5, 0, 0, 0, 0, 0};
+    player->ships[1] = (struct Ship){"Battleship", 4, 0, 0, 0, 0, 0};
+    player->ships[2] = (struct Ship){"Destroyer", 3, 0, 0, 0, 0, 0};
+    player->ships[3] = (struct Ship){"Submarine", 2, 0, 0, 0, 0, 0};
 }
 
 int canPlaceShip(char grid[GRID][GRID], int x, int y, int size, char dir)
@@ -267,7 +267,7 @@ void BOTPlaceShips(struct Player *player)
 
             if (canPlaceShip(player->grid, row, col, ship->size, dir))
             {
-                
+
                 ship->row = row;
                 ship->col = col;
                 ship->direction = dir;
@@ -339,8 +339,8 @@ void fire_GP(struct Player *attacker, struct Player *defender, int row, int col)
                 {
                     defender->ships[i].sank = 1;
                     int x = defender->ships[i].size;
-                    attacker->numOfHits -= x; //ngl not sure this works i forgot how C works
-                    //ill test it out elsewhere later
+                    attacker->numOfHits -= x; // ngl not sure this works i forgot how C works
+                    // ill test it out elsewhere later
                     printf("The %s has sunk!\n", defender->ships[i].name);
                     attacker->shot = true;
                 }
@@ -358,47 +358,66 @@ void fire_GP(struct Player *attacker, struct Player *defender, int row, int col)
     }
 }
 
-void BOTFireball(struct Player *attacker, struct Player *defender){
-    int directions[4] = {0, 1, 2, 3}; //up, down, left, right
-    if (attacker->numOfHits == 0){
-    while(1)
+void BOTFireball(struct Player *attacker, struct Player *defender)
+{
+    int directions[4] = {0, 1, 2, 3}; // up, down, left, right
+    if (attacker->numOfHits == 0)
     {
-        int x = rand()%10;
-        int y = rand()%10;
-                    //smokescreeen not hit at all not a hit before not a miss before, either a hit or a miss
-        if (defender->grid[x][y] == 'X'|| defender->grid[x][y] == '~' || (defender->grid[x][y] != '*' && defender->grid[x][y] != 'o'))
+        while (1) // loops till it hits anything, saves if it hits a ship
         {
-            fire_GP(attacker, defender, x, y); //valid for fireballing
-            if (defender->grid[x][y] == '*') {
-                attacker->lastHitX = x;
-                attacker->lastHitY = y;
+            int x = rand() % 10;
+            int y = rand() % 10;
+
+            // smokescreeen not hit at all, not a hit before ,not a miss before, either a hit or a miss
+            if (defender->grid[x][y] == 'X' || defender->grid[x][y] == '~' || (defender->grid[x][y] != '*' && defender->grid[x][y] != 'o'))
+            {
+                printf("\nBob Performs A Fire Attack at (%c%d)\n", 'A' + y, x);
+                fire_GP(attacker, defender, x, y);
+                if (defender->grid[x][y] == '*')
+                {
+                    attacker->lastHitX = x;
+                    attacker->lastHitY = y;
+                }
+                return;
             }
-            return;
-        }   
+        }
     }
-    }
-    else{
-        for (int i = 3; i>0; i--){
+    else
+    {
+        for (int i = 3; i > 0; i--)
+        {
             int j = rand() % (i + 1);
             int temp = directions[i];
             directions[i] = directions[j];
             directions[j] = temp;
         }
 
-        for (int i = 0; i < 4; i++){
+        for (int i = 0; i < 4; i++)
+        {
             int x = attacker->lastHitX;
             int y = attacker->lastHitY;
 
-            switch (directions[i]) {
-                case 0: x--; break; // up
-                case 1: x++; break; // down
-                case 2: y--; break; // lfet
-                case 3: y++; break; // right
+            switch (directions[i])
+            {
+            case 0:
+                x--;
+                break; // up
+            case 1:
+                x++;
+                break; // down
+            case 2:
+                y--;
+                break; // lfet
+            case 3:
+                y++;
+                break; // right
             }
 
-            if ((x>=0 && y>= 0 && x<10 && y<10) && defender->grid[x][y] != '*' && defender->grid[x][y] != 'o'){
+            if ((x >= 0 && y >= 0 && x < 10 && y < 10) && defender->grid[x][y] != '*' && defender->grid[x][y] != 'o')
+            {
                 fire_GP(attacker, defender, x, y);
-                if (defender->grid[x][y] == '*'){ //update when hit
+                if (defender->grid[x][y] == '*')
+                { // update when hit
                     attacker->lastHitX = x;
                     attacker->lastHitY = y;
                 }
@@ -687,8 +706,6 @@ void gamePlay(struct Player *attacker, struct Player *defender)
     }
 }
 
-
-
 void BOTGamePlay(struct Player *attacker, struct Player *defender)
 {
     char command[15];
@@ -700,129 +717,72 @@ void BOTGamePlay(struct Player *attacker, struct Player *defender)
 
     while (1)
     {
-        BOTFireball(attacker, defender);
-        return;
-    /* int randComm = (rand()) % 3;
 
-    if (countSink(attacker, defender) >= 1 && attacker->smokeScreens < maxSS) // Must do around ships that I have
-    {
-    int which_ship = rand() % 5;
-
-    // Ensure selected ship is valid
-    if (which_ship >= 0 && which_ship < 4) // Adjust based on the actual number of ships
-    {
-        int row = attacker->ships[which_ship].row;
-        int col = attacker->ships[which_ship].col;
-        int size = attacker->ships[which_ship].size;
-        char dir = attacker->ships[which_ship].direction;
-
-        int neededRow = -1;
-        int neededCol = -1;
-
-        if (dir == 'v')
+        if (countSink(attacker, defender) >= 1 && attacker->smokeScreens < maxSS) // SMOKESCREEN
         {
-            for (int i = row; i < row + size && i < GRID; i++) // Ensure i stays within bounds
+            int validSmokeScreen = 0;
+
+            for (int shipIndex = 0; shipIndex < 4; shipIndex++) // Loop through all 4 ships
             {
-                if (col >= 0 && col < GRID && attacker->grid[i][col] != '*' && attacker->grid[i][col] != 'o')
+
+                int row = attacker->ships[shipIndex].row;
+                int col = attacker->ships[shipIndex].col;
+                int size = attacker->ships[shipIndex].size;
+                char dir = attacker->ships[shipIndex].direction;
+
+                int neededRow = -1;
+                int neededCol = -1;
+
+                if (dir == 'v')
                 {
-                    neededCol = col;
-                    neededRow = i;
-                    break;
+                    for (int i = row; i < row + size && i < GRID; i++)
+                    {
+                        if (i + 1 < GRID && col + 1 < GRID && i >= 0 && col >= 0 &&
+                            attacker->grid[i][col] != '*' && attacker->grid[i][col] != 'o')
+                        {
+                            neededRow = i;
+                            neededCol = col;
+                            break; // valid
+                        }
+                    }
+                }
+                else if (dir == 'h')
+                {
+                    for (int j = col; j < col + size && j < GRID; j++)
+                    {
+
+                        if (row + 1 < GRID && j + 1 < GRID && row >= 0 && j >= 0 &&
+                            attacker->grid[row][j] != '*' && attacker->grid[row][j] != 'o')
+                        {
+                            neededRow = row;
+                            neededCol = j;
+                            break; // valid
+                        }
+                    }
+                }
+
+                if (neededRow != -1 && neededCol != -1) // checks for valid location
+                {
+                    if (neededRow + 1 < GRID && neededCol + 1 < GRID)
+                    {
+                        printf("\nBob Performs Smoke Screen at (%c%d)\n", 'A' + neededCol, neededRow + 1);
+                        smokeScreen_GP(attacker, defender, neededRow, neededCol);
+                        validSmokeScreen = 1;
+                        break;
+                    }
                 }
             }
-        }
-        else if (dir == 'h')
-        {
-            for (int j = col; j < col + size && j < GRID; j++) // Ensure j stays within bounds
-            {
-                if (row >= 0 && row < GRID && attacker->grid[row][j] != '*' && attacker->grid[row][j] != 'o')
-                {
-                    neededCol = j;
-                    neededRow = row;
-                    break;
-                }
-            }
-        }
 
-        if (neededRow != -1 && neededCol != -1) // Ensure valid coordinates were found
-        {
-            printf("\nBob Performs Smoke Screen at (%c%d)\n", 'A' + neededCol, neededRow + 1);
-            printf("\ncol: %d, row: %d\n", attacker->ships[1].col, attacker->ships[1].row); // works
-            smokeScreen_GP(attacker, defender, neededRow, neededCol);
+            if (validSmokeScreen == 0)
+            {
+                printf("\nNo valid smoke screen position found!\n");
+            }
         }
         else
-        {
-            printf("No valid location found for smoke screen.\n");
+        { 
+            BOTFireball(attacker, defender);
+            return;
         }
-    }
-    else
-    {
-        printf("Invalid ship index selected: %d\n", which_ship);
-    }
-
-    break;
-    }
-        else if (attacker->Rsweep != 0) // must add cond so it doesnt only use it always first
-        {
-            int row;
-            char col;
-
-            row = rand() % (GRID - 1);
-            col = 'A' + (rand() % (GRID - 1));
-
-            int colIndex = col - 'A';
-            printf("\nBob Performs Rader Sweep at (%c%d)\n", col, row);
-            RadarSweep_GP(attacker, defender, row, colIndex); // if enemy ships found must hit around this area
-            break;
-        }
-
-        else if (attacker->artill == 1 && attacker->shot) // will do directly once available, add smart random
-        {
-            int row;
-            char col;
-
-            row = rand() % (GRID - 1);
-            col = 'A' + (rand() % (GRID - 1)); // ensures bounds
-
-            int colIndex = col - 'A';
-            printf("\nBob Performs Artillery at (%c%d)\n", col, row);
-            artillery(attacker, defender, row, colIndex);
-            break;
-        }
-
-        else if (countSink(attacker, defender) >= 3 && attacker->torCount == 0) // torpedo
-        {
-            
-            //there should be some kind of condition here idk
-            {
-                // random
-
-                int row_or_col = rand() % 2; // chose random nb for row or col, and will decide randomly which to choose late
-                char type[3];
-
-                if (row_or_col == 0)
-                {
-                    int row = rand() % GRID + 1; // got rand nb
-                    sprintf(type, "%d", row);    // converts from string to char
-                }
-                else
-                {
-                    char col = 'A' + (rand() % GRID); // gets rand letter
-                    type[0] = col;
-                    type[1] = '\0';
-                }
-                printf("\nBob used Rader Sweep at (%c%d)\n", col, row);
-                torpedo(attacker, defender, type);
-                break;
-            }
-            break;
-        }
-
-        else
-        {
-            gamePlay(attacker, defender);
-            break;
-        } */
     }
 }
 
