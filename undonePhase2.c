@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-// BattleShips Beneath The Waves - Phase 2 - correct reading
+// BattleShips Beneath The Waves - Phase 2 - correct fire
 
 #define GRID 10
 
