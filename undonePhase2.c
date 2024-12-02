@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-// BattleShips Beneath The Waves - Phase 2 - artil, torpedo?
+// BattleShips Beneath The Waves - Phase 2 - correct fire and smoke screen
 // adding torpedo
 #define GRID 10
 
@@ -528,13 +528,34 @@ void artillery(struct Player *attacker, struct Player *defender, int row, int co
         printf("Invalid artillery placement. Out of bounds.\n");
         return;
     }
+
     for (int i = row; i < row + 2 && i < GRID; i++)
     {
         for (int j = col; j < col + 2 && j < GRID; j++)
         {
             if (defender->grid[i][j] != '~' && defender->grid[i][j] != 'o' && defender->grid[i][j] != '*')
             {
+
                 printf("Hit at %c%d!\n", 'A' + j, i + 1);
+                char shipLetter = defender->grid[row][col];
+                printf("LETTER %c", shipLetter);
+                for (int i = 0; i < 4; i++)
+                {
+                    if (defender->ships[i].name[0] == shipLetter)
+                    {
+                        defender->ships[i].hits++;
+                        attacker->numOfHits++;
+                        if (defender->ships[i].hits >= defender->ships[i].size && defender->ships[i].sank == 0)
+                        {
+                            defender->ships[i].sank = 1;
+                            int x = defender->ships[i].size;
+                            attacker->numOfHits -= x; // ngl not sure this works i forgot how C works
+                            // ill test it out elsewhere later
+                            printf("The %s has sunk!\n", defender->ships[i].name);
+                            attacker->shot = true;
+                        }
+                    }
+                }
                 defender->grid[i][j] = '*';
             }
             else
@@ -561,6 +582,56 @@ int isValidArtilleryTarget(struct Player *defender, int row, int col)
         }
     }
     return 1;
+}
+
+void BOTartillery(struct Player *attacker, struct Player *defender, int row, int col)
+{
+    int targetRow = attacker->lastHitX;
+    int targetCol = attacker->lastHitY;
+    int validTarget = 0;
+
+    for (int dx = -1; dx <= 1; dx++)
+    {
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            row = targetRow + dx;
+            col = targetCol + dy;
+
+            if (row >= 0 && row + 1 < GRID && col >= 0 && col + 1 < GRID)
+            {
+                if (isValidArtilleryTarget(defender, row, col))
+                {
+                    printf("\nBob performs Artillery at (%c%d)\n", 'A' + col, row + 1);
+                    artillery(attacker, defender, row, col);
+                    attacker->artill = 0;
+                    attacker->shot = 0; // Reset shot condition
+                    validTarget = 1;
+                    break;
+                }
+            }
+        }
+        if (validTarget)
+            break;
+    }
+
+    if (!validTarget)
+    {
+        // random valid 2x2 area
+        while (1)
+        {
+            row = rand() % (GRID - 1);
+            col = rand() % (GRID - 1);
+
+            if (isValidArtilleryTarget(defender, row, col))
+            {
+                printf("\nBob performs Artillery at (%c%d)\n", 'A' + col, row + 1);
+                artillery(attacker, defender, row, col);
+                attacker->artill = 0;
+                attacker->shot = 0;
+                break;
+            }
+        }
+    }
 }
 
 void torpedo(struct Player *attacker, struct Player *defender, char *type)
@@ -620,6 +691,218 @@ void torpedo(struct Player *attacker, struct Player *defender, char *type)
         printf("Invalid torpedo input.\n");
     }
     attacker->tor = 0;
+}
+
+int gridReadTorpedo(struct Player *attacker, struct Player *defender)
+{
+    for (int i = 0; i < GRID; i++)
+    {
+        for (int j = 0; j < GRID; j++)
+        {
+            if (defender->grid[i][j] == '*')
+            {
+
+                int row_or_col = rand() % 2;
+                if (row_or_col == 0)
+                {
+                    return i + 1;
+                }
+                else
+                {
+                    return j;
+                }
+            }
+        }
+    }
+
+    return -1;
+}
+
+int gridReadTorpedoCol(struct Player *attacker, struct Player *defender)
+{
+    for (int i = 0; i < GRID; i++)
+    {
+        for (int j = 0; j < GRID; j++)
+        {
+            if (defender->grid[i][j] == '*')
+            {
+
+                if (i > 0 && defender->grid[i - 1][j] == '~')
+                {
+                    return j;
+                }
+                else if (i < GRID - 1 && defender->grid[i + 1][j] == '~')
+                {
+                    return j;
+                }
+            }
+        }
+    }
+    return -1;
+}
+
+int gridReadTorpedoRow(struct Player *attacker, struct Player *defender)
+{
+    for (int i = 0; i < GRID; i++)
+
+    {
+        for (int j = 0; j < GRID; j++)
+        {
+            if (defender->grid[i][j] == '*')
+            {
+
+                if (j > 0 && defender->grid[i][j - 1] == '~')
+                {
+                    return i;
+                }
+                else if (j < GRID - 1 && defender->grid[i][j + 1] == '~')
+                {
+                    return i;
+                }
+            }
+        }
+    }
+    return -1;
+}
+
+void BOTtorperdo(struct Player *attacker, struct Player *defender, int row, int col)
+{
+
+    int row_or_col = rand() % 2; // Randomly decide row or column
+    char type[3];
+
+    if (row_or_col == 0)
+    {
+        row = rand() % GRID;          // Corrected to stay within bounds (0 to GRID-1)
+        sprintf(type, "%d", row + 1); // Convert to string (1-based index)
+    }
+    else
+    {
+        col = 'A' + (rand() % GRID); // Random column (A to J)
+        type[0] = col;
+        type[1] = '\0';
+    }
+
+    printf("\nBob used Radar Sweep at (%c%d)\n", col, row + 1);
+    torpedo(attacker, defender, type); // Fire the torpedo
+
+    /*char type[3];
+    int row = 2; // Focus on the row of the last hit attacker->lastHitX
+    int col = 4;
+    int choose = rand() % 2;
+
+    if (choose == 0)
+    {
+        // Check columns on either side of the hit in the same row
+        if (col > 0 && defender->grid[row][col - 1] == '~')
+        {             // Check left column
+            row -= 1; // Adjust to target left column
+        }
+        else if (col < GRID - 1 && defender->grid[row][col + 1] == '~')
+        {             // Check right column
+            row += 1; // Adjust to target right column
+        }
+        else
+        {
+            printf("No valid water cell found in the same row!\n");
+            break; // Exit if no valid targets are adjacent in the row
+        }
+
+        // Convert the row to a string to represent the entire row
+        sprintf(type, "%d", row + 1); // Convert to 1-based index for the row
+        printf("\nBob used Torpedo on Row %d\n", row + 1);
+        torpedo(attacker, defender, type); // Fire the torpedo at the row
+        break;
+    }
+    else
+    {
+        // Check rows above or below the hit in the same column
+        if (row > 0 && defender->grid[row - 1][col] == '~') // Check cell above
+        {
+            row -= 1; // Adjust to target the cell above
+        }
+        else if (row < GRID - 1 && defender->grid[row + 1][col] == '~') // Check cell below
+        {
+            row += 1; // Adjust to target the cell below
+        }
+        else
+        {
+            printf("No valid water cell found in the same column!\n");
+            break; // Exit if no valid targets are adjacent in the column
+        }
+
+        // Convert the column to a string to represent the entire column
+        sprintf(type, "%c", 'A' + col); // Convert to alphabetic index for the column
+        printf("\nBob used Torpedo on Column %c\n", 'A' + col);
+        torpedo(attacker, defender, type); // Fire the torpedo at the column
+        break;
+    }*/
+
+    /*
+    int chooseR = rand() % 2;
+    if (chooseR == 0)
+    {
+        int choose = rand() % 2;
+
+        if (choose == 0)
+        {
+            int row = attacker->lastHitX;
+            int col = rand() % GRID;
+
+            if (col < 0 || col >= GRID)
+            {
+                col = rand() % GRID;
+            }
+
+            char type[3];
+            type[0] = 'A' + col;
+            sprintf(type + 1, "%d", row + 1);
+
+            printf("\nBob used Torpedo at (%c%d)\n", type[0], type[1] - '0');
+            torpedo(attacker, defender, type);
+            break;
+        }
+        else
+        {
+            int row = rand() % GRID;
+            int col = attacker->lastHitY;
+
+            if (row < 0 || row >= GRID)
+            {
+                row = rand() % GRID;
+            }
+
+            char type[3];
+            type[0] = 'A' + col;
+            sprintf(type + 1, "%d", row + 1);
+
+            printf("\nBob used Torpedo at (%c%d)\n", type[0], type[1] - '0');
+            torpedo(attacker, defender, type);
+            break;
+        }
+    }
+    else
+    {
+        // If no hit was found, fall back to random targeting
+        int row_or_col = rand() % 2; // Randomly decide row or column
+        char type[3];
+
+        if (row_or_col == 0)
+        {
+            row = rand() % GRID;          // Corrected to stay within bounds (0 to GRID-1)
+            sprintf(type, "%d", row + 1); // Convert to string (1-based index)
+        }
+        else
+        {
+            col = 'A' + (rand() % GRID); // Random column (A to J)
+            type[0] = col;
+            type[1] = '\0';
+        }
+
+        printf("\nBob used Radar Sweep at (%c%d)\n", col, row + 1);
+        torpedo(attacker, defender, type); // Fire the torpedo
+        break;
+    }*/
 }
 
 void gamePlay(struct Player *attacker, struct Player *defender)
@@ -721,78 +1004,6 @@ void gamePlay(struct Player *attacker, struct Player *defender)
     }
 }
 
-int gridReadTorpedo(struct Player *attacker, struct Player *defender)
-{
-    for (int i = 0; i < GRID; i++)
-    {
-        for (int j = 0; j < GRID; j++)
-        {
-            if (defender->grid[i][j] == '*')
-            {
-
-                int row_or_col = rand() % 2;
-                if (row_or_col == 0)
-                {
-                    return i + 1;
-                }
-                else
-                {
-                    return j;
-                }
-            }
-        }
-    }
-
-    return -1;
-}
-
-int gridReadTorpedoCol(struct Player *attacker, struct Player *defender)
-{
-    for (int i = 0; i < GRID; i++)
-    {
-        for (int j = 0; j < GRID; j++)
-        {
-            if (defender->grid[i][j] == '*')
-            {
-
-                if (i > 0 && defender->grid[i - 1][j] == '~')
-                {
-                    return j;
-                }
-                else if (i < GRID - 1 && defender->grid[i + 1][j] == '~')
-                {
-                    return j;
-                }
-            }
-        }
-    }
-    return -1;
-}
-
-int gridReadTorpedoRow(struct Player *attacker, struct Player *defender)
-{
-    for (int i = 0; i < GRID; i++)
-
-    {
-        for (int j = 0; j < GRID; j++)
-        {
-            if (defender->grid[i][j] == '*')
-            {
-
-                if (j > 0 && defender->grid[i][j - 1] == '~')
-                {
-                    return i;
-                }
-                else if (j < GRID - 1 && defender->grid[i][j + 1] == '~')
-                {
-                    return i;
-                }
-            }
-        }
-    }
-    return -1;
-}
-
 void BOTGamePlay(struct Player *attacker, struct Player *defender)
 {
     char command[15];
@@ -804,6 +1015,8 @@ void BOTGamePlay(struct Player *attacker, struct Player *defender)
 
     while (1)
     {
+
+        printf("%d",countSink(attacker, defender));
 
         if (countSink(attacker, defender) >= 1 && attacker->smokeScreens < maxSS) // SMOKESCREEN
         {
@@ -872,193 +1085,15 @@ void BOTGamePlay(struct Player *attacker, struct Player *defender)
 
         else if (countSink(attacker, defender) >= 3 && attacker->torCount == 0) // TORPEDO
         {
-            int row_or_col = rand() % 2; // Randomly decide row or column
-            char type[3];
-
-            if (row_or_col == 0)
-            {
-                row = rand() % GRID;          // Corrected to stay within bounds (0 to GRID-1)
-                sprintf(type, "%d", row + 1); // Convert to string (1-based index)
-            }
-            else
-            {
-                col = 'A' + (rand() % GRID); // Random column (A to J)
-                type[0] = col;
-                type[1] = '\0';
-            }
-
-            printf("\nBob used Radar Sweep at (%c%d)\n", col, row + 1);
-            torpedo(attacker, defender, type); // Fire the torpedo
+            BOTtorperdo(attacker, defender, row, col);
             break;
-            /*char type[3];
-            int row = 2; // Focus on the row of the last hit attacker->lastHitX
-            int col = 4;
-            int choose = rand() % 2;
-
-            if (choose == 0)
-            {
-                // Check columns on either side of the hit in the same row
-                if (col > 0 && defender->grid[row][col - 1] == '~')
-                {             // Check left column
-                    row -= 1; // Adjust to target left column
-                }
-                else if (col < GRID - 1 && defender->grid[row][col + 1] == '~')
-                {             // Check right column
-                    row += 1; // Adjust to target right column
-                }
-                else
-                {
-                    printf("No valid water cell found in the same row!\n");
-                    break; // Exit if no valid targets are adjacent in the row
-                }
-
-                // Convert the row to a string to represent the entire row
-                sprintf(type, "%d", row + 1); // Convert to 1-based index for the row
-                printf("\nBob used Torpedo on Row %d\n", row + 1);
-                torpedo(attacker, defender, type); // Fire the torpedo at the row
-                break;
-            }
-            else
-            {
-                // Check rows above or below the hit in the same column
-                if (row > 0 && defender->grid[row - 1][col] == '~') // Check cell above
-                {
-                    row -= 1; // Adjust to target the cell above
-                }
-                else if (row < GRID - 1 && defender->grid[row + 1][col] == '~') // Check cell below
-                {
-                    row += 1; // Adjust to target the cell below
-                }
-                else
-                {
-                    printf("No valid water cell found in the same column!\n");
-                    break; // Exit if no valid targets are adjacent in the column
-                }
-
-                // Convert the column to a string to represent the entire column
-                sprintf(type, "%c", 'A' + col); // Convert to alphabetic index for the column
-                printf("\nBob used Torpedo on Column %c\n", 'A' + col);
-                torpedo(attacker, defender, type); // Fire the torpedo at the column
-                break;
-            }*/
-
-            /*
-            int chooseR = rand() % 2;
-            if (chooseR == 0)
-            {
-                int choose = rand() % 2;
-
-                if (choose == 0)
-                {
-                    int row = attacker->lastHitX;
-                    int col = rand() % GRID;
-
-                    if (col < 0 || col >= GRID)
-                    {
-                        col = rand() % GRID;
-                    }
-
-                    char type[3];
-                    type[0] = 'A' + col;
-                    sprintf(type + 1, "%d", row + 1);
-
-                    printf("\nBob used Torpedo at (%c%d)\n", type[0], type[1] - '0');
-                    torpedo(attacker, defender, type);
-                    break;
-                }
-                else
-                {
-                    int row = rand() % GRID;
-                    int col = attacker->lastHitY;
-
-                    if (row < 0 || row >= GRID)
-                    {
-                        row = rand() % GRID;
-                    }
-
-                    char type[3];
-                    type[0] = 'A' + col;
-                    sprintf(type + 1, "%d", row + 1);
-
-                    printf("\nBob used Torpedo at (%c%d)\n", type[0], type[1] - '0');
-                    torpedo(attacker, defender, type);
-                    break;
-                }
-            }
-            else
-            {
-                // If no hit was found, fall back to random targeting
-                int row_or_col = rand() % 2; // Randomly decide row or column
-                char type[3];
-
-                if (row_or_col == 0)
-                {
-                    row = rand() % GRID;          // Corrected to stay within bounds (0 to GRID-1)
-                    sprintf(type, "%d", row + 1); // Convert to string (1-based index)
-                }
-                else
-                {
-                    col = 'A' + (rand() % GRID); // Random column (A to J)
-                    type[0] = col;
-                    type[1] = '\0';
-                }
-
-                printf("\nBob used Radar Sweep at (%c%d)\n", col, row + 1);
-                torpedo(attacker, defender, type); // Fire the torpedo
-                break;
-            }*/
         }
 
-        /*else if (attacker->artill == 1 && attacker->shot) // ARTILLERY
+        else if (attacker->artill == 1 && attacker->shot) // ARTILLERY
         {
-            int targetRow = attacker->lastHitX;
-            int targetCol = attacker->lastHitY;
-            int validTarget = 0;
-
-            for (int dx = -1; dx <= 1; dx++)
-            {
-                for (int dy = -1; dy <= 1; dy++)
-                {
-                    row = targetRow + dx;
-                    col = targetCol + dy;
-
-                    if (row >= 0 && row + 1 < GRID && col >= 0 && col + 1 < GRID)
-                    {
-                        if (isValidArtilleryTarget(defender, row, col))
-                        {
-                            printf("\nBob performs Artillery at (%c%d)\n", 'A' + col, row + 1);
-                            artillery(attacker, defender, row, col);
-                            attacker->artill = 0;
-                            attacker->shot = 0; // Reset shot condition
-                            validTarget = 1;
-                            break;
-                        }
-                    }
-                }
-                if (validTarget)
-                    break;
-            }
-
-            if (!validTarget)
-            {
-                // random valid 2x2 area
-                while (1)
-                {
-                    row = rand() % (GRID - 1);
-                    col = rand() % (GRID - 1);
-
-                    if (isValidArtilleryTarget(defender, row, col))
-                    {
-                        printf("\nBob performs Artillery at (%c%d)\n", 'A' + col, row + 1);
-                        artillery(attacker, defender, row, col);
-                        attacker->artill = 0;
-                        attacker->shot = 0;
-                        break;
-                    }
-                }
-            }
+            BOTartillery(attacker, defender, row, col);
             break;
-        }*/
+        }
 
         else // FIRE
         {
