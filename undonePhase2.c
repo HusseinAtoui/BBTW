@@ -339,8 +339,7 @@ void fire_GP(struct Player *attacker, struct Player *defender, int row, int col)
                 {
                     defender->ships[i].sank = 1;
                     int x = defender->ships[i].size;
-                    attacker->numOfHits -= x; // ngl not sure this works i forgot how C works
-                    // ill test it out elsewhere later
+                    attacker->numOfHits -= x;
                     printf("The %s has sunk!\n", defender->ships[i].name);
                     attacker->shot = true;
                 }
@@ -358,70 +357,63 @@ void fire_GP(struct Player *attacker, struct Player *defender, int row, int col)
     }
 }
 
-void BOTFireball(struct Player *attacker, struct Player *defender)
-{
-    int directions[4] = {0, 1, 2, 3}; // up, down, left, right
-    if (attacker->numOfHits == 0)
+void BOTFireball(struct Player *attacker, struct Player *defender){
+    static int hitPositions[100][2]; 
+    static int hitCount = 0;
+    int directions[4] = {0, 1, 2, 3}; //up, down, left, right
+    if (attacker->numOfHits == 0){
+    while(1)
     {
-        while (1) // loops till it hits anything, saves if it hits a ship
+        int x = rand()%10;
+        int y = rand()%10;
+                    //smokescreeen not hit at all not a hit before not a miss before, either a hit or a miss
+        if (defender->grid[x][y] == 'X'|| defender->grid[x][y] == '~' || (defender->grid[x][y] != '*' && defender->grid[x][y] != 'o'))
         {
-            int x = rand() % 10;
-            int y = rand() % 10;
-
-            // smokescreeen not hit at all, not a hit before ,not a miss before, either a hit or a miss
-            if (defender->grid[x][y] == 'X' || defender->grid[x][y] == '~' || (defender->grid[x][y] != '*' && defender->grid[x][y] != 'o'))
-            {
-                printf("\nBob Performs A Fire Attack at (%c%d)\n", 'A' + y, x);
-                fire_GP(attacker, defender, x, y);
-                if (defender->grid[x][y] == '*')
-                {
-                    attacker->lastHitX = x;
-                    attacker->lastHitY = y;
-                }
-                return;
+            fire_GP(attacker, defender, x, y); //valid for fireballing
+            if (defender->grid[x][y] == '*') {
+                attacker->lastHitX = x;
+                attacker->lastHitY = y;
+                hitPositions[hitCount][0] = x;
+                hitPositions[hitCount][1] = y;
+                hitCount++;
             }
-        }
+            return;
+        }   
     }
-    else
-    {
-        for (int i = 3; i > 0; i--)
-        {
+    }
+    else{
+        for (int i = 3; i>0; i--){
             int j = rand() % (i + 1);
             int temp = directions[i];
             directions[i] = directions[j];
             directions[j] = temp;
         }
 
-        for (int i = 0; i < 4; i++)
-        {
-            int x = attacker->lastHitX;
-            int y = attacker->lastHitY;
+        for (int i = 0; i < hitCount; i++) {
+            int x = hitPositions[i][0];
+            int y = hitPositions[i][1];
 
-            switch (directions[i])
-            {
-            case 0:
-                x--;
-                break; // up
-            case 1:
-                x++;
-                break; // down
-            case 2:
-                y--;
-                break; // lfet
-            case 3:
-                y++;
-                break; // right
-            }
-
-            if ((x >= 0 && y >= 0 && x < 10 && y < 10) && defender->grid[x][y] != '*' && defender->grid[x][y] != 'o')
-            {
-                fire_GP(attacker, defender, x, y);
-                if (defender->grid[x][y] == '*')
-                { // update when hit
-                    attacker->lastHitX = x;
-                    attacker->lastHitY = y;
+            //around recent-est hit
+            for (int j = 0; j < 4; j++) {
+                int xx = x, yy = y;
+                switch (directions[j]) {
+                    case 0: xx--; break; // up
+                    case 1: xx++; break; // down
+                    case 2: yy--; break; // lfet
+                    case 3: yy++; break; // right
                 }
-                return;
+                //checking to fire
+                if ((xx>=0 && yy>=0 && xx<GRID && yy<GRID) && defender->grid[xx][yy] != '*' && defender->grid[xx][yy] != 'o') {
+                    fire_GP(attacker, defender, xx, yy);
+                    if (defender->grid[xx][yy] == '*') {
+                        attacker->lastHitX = xx;
+                        attacker->lastHitY = yy;
+                        hitPositions[hitCount][0] = xx;
+                        hitPositions[hitCount][1] = yy;
+                        hitCount++;
+                    }
+                    return;
+                }
             }
         }
     }
