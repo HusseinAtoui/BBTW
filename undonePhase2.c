@@ -470,6 +470,69 @@ void RadarSweep_GP(struct Player *attacker, struct Player *defender, int row, in
     return;
 }
 
+void BotRadarSweep(struct Player *attacker, struct Player *defender) {
+
+    if (attacker->Rsweep <= 0) {
+        printf("Bot has no radar sweeps left!\n");
+        return;
+    }
+
+    int row, col;
+    int foundSweepLocation = 0;
+    int detectedShip = 0;  // Flag to track if a ship is detected
+
+    if (attacker->lastHitX != -1 && attacker->lastHitY != -1) {
+        row = attacker->lastHitX;
+        col = attacker->lastHitY;
+
+        // Check a 2x2 
+        if (row > 0 && col > 0) {
+
+            if (defender->grid[row - 1][col - 1] != '.' && row - 1 >= 0 && col - 1 >= 0) {
+                detectedShip = 1;
+                attacker->detectedRow = row - 1; // Save the detected coordinates
+                attacker->detectedCol = col - 1;
+                printf("Ship detected at (%c%d)!\n", 'A' + col - 1, row);
+            }
+            RadarSweep_GP(attacker, defender, row - 1, col - 1);
+            foundSweepLocation = 1;
+        }
+
+        // Check bottom-right diagonal
+        if (row < GRID - 1 && col < GRID - 1) {
+
+            if (defender->grid[row + 1][col + 1] != '.' && row + 1 < GRID && col + 1 < GRID) {
+                detectedShip = 1;
+                attacker->detectedRow = row + 1; // Save the detected coordinates
+                attacker->detectedCol = col + 1;
+                printf("Ship detected at (%c%d)!\n", 'A' + col + 1, row + 1);
+            }
+            RadarSweep_GP(attacker, defender, row + 1, col + 1);
+            foundSweepLocation = 1;
+        }
+    }
+
+    // If no previous hit area 
+    if (!foundSweepLocation) {
+        row = rand() % (GRID - 1);  // Random row
+        col = rand() % (GRID - 1);  // Random column
+        printf("Bot uses Radar Sweep at (%c%d)\n", 'A' + col, row + 1);
+
+        if (defender->grid[row][col] != '.' && row >= 0 && col >= 0 && row < GRID && col < GRID) {
+            detectedShip = 1;
+            attacker->detectedRow = row; // Save the detected coordinates
+            attacker->detectedCol = col;
+            printf("Ship detected at (%c%d)!\n", 'A' + col, row + 1);
+        }
+        RadarSweep_GP(attacker, defender, row, col);
+    }
+
+    // Decrement the radar sweeps after using one
+    attacker->Rsweep--;
+
+}
+
+
 void smokeScreen_GP(struct Player *attacker, struct Player *defender, int row, int col)
 {
     int maxSS = countSink(attacker, defender);
