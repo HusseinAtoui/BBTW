@@ -497,7 +497,11 @@ void smokeScreen_GP(struct Player *attacker, struct Player *defender, int row, i
     attacker->smokeScreens++;
     attacker->smokeRound = 2;
 
-    printf("Smoke screen deployed at %c%d.\n", 'A' + col, row + 1);
+    for (int i = 0; i < 100; i++)
+    {
+        printf("\n");
+    }
+    printf("\nSmoke screen deployed!");
 }
 
 void checkSmokeScreen(struct Player *attacker)
@@ -931,7 +935,11 @@ void BOTGamePlay(struct Player *attacker, struct Player *defender)
                 {
                     if (neededRow + 1 < GRID && neededCol + 1 < GRID)
                     {
-                        printf("\nBob Performs Smoke Screen at (%c%d)\n", 'A' + neededCol, neededRow + 1);
+                        for (int i = 0; i < 100; i++)
+                        {
+                            printf("\n");
+                        }
+                        printf("\nBob deployed smoke screen. He has mastered defending :)");
                         smokeScreen_GP(attacker, defender, neededRow, neededCol);
                         validSmokeScreen = 1;
                         break;
