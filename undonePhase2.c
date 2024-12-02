@@ -308,6 +308,19 @@ int countSink(struct Player *attacker, struct Player *defender)
     return counter;
 }
 
+bool isSunk(struct Player *defender, int row, int col)
+{
+    char shipLetter = defender->grid[row][col];
+    for (int i = 0; i < 4; i++)
+    {
+        if (defender->ships[i].name[0] == shipLetter && defender->ships[i].sank == 1)
+        {
+            return true;
+        }
+    }
+    return false; // Ship is still afloat
+}
+
 void fire_GP(struct Player *attacker, struct Player *defender, int row, int col)
 {
     if (defender->grid[row][col] == 'X')
@@ -835,7 +848,7 @@ void torpedo(struct Player *attacker, struct Player *defender, char *type)
     attacker->tor = 0;
 }
 
-void BOTtorperdo(struct Player *attacker, struct Player *defender, int row, int col)
+void BOTtorpedo(struct Player *attacker, struct Player *defender, int row, int col)
 {
     int row_or_col = rand() % 2;
     char type[3];
@@ -859,47 +872,68 @@ void BOTtorperdo(struct Player *attacker, struct Player *defender, int row, int 
     }
     else
     {
-        char type[3];
         int row = attacker->lastHitX;
         int col = attacker->lastHitY;
-        int choose = rand() % 2;
+        int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
-        if (choose == 0)
+        int found = 0;
+        int hitPositions[20][2];
+        int hitCount = 0;
+
+        for (int i = -2; i <= 2 && !found; i++)
         {
-            if (col > 0 && defender->grid[row][col - 1] == '~')
+            for (int j = -2; j <= 2 && !found; j++)
             {
-                row -= 1;
+                int newRow = row + i;
+                int newCol = col + j;
+                if (newRow < 0 || newRow >= GRID || newCol < 0 || newCol >= GRID)
+                    continue;
+                if (defender->grid[newRow][newCol] == '*' && !isSunk(defender, newRow, newCol))
+                {
+                    hitPositions[hitCount][0] = newRow;
+                    hitPositions[hitCount][1] = newCol;
+                    hitCount++;
+                    found = 1;
+                }
             }
-            else if (col < GRID - 1 && defender->grid[row][col + 1] == '~')
+        }
+        if (found)
+        {
+            if (hitCount > 0)
             {
-                row += 1;
+                int attackRow = hitPositions[0][0];
+                int attackCol = hitPositions[0][1];
+                int row_or_col = rand() % 2;
+                if (row_or_col == 0)
+                {
+                    sprintf(type, "%d", attackRow + 1);
+                    printf("\nBob used Torpedo on Row (%d)\n", attackRow + 1);
+                    torpedo(attacker, defender, type);
+                }
+                else
+                {
+                    sprintf(type, "%c", 'A' + attackCol);
+                    printf("\nBob used Torpedo on Column (%c)\n", 'A' + attackCol);
+                    torpedo(attacker, defender, type);
+                }
             }
-            else
-            {
-                printf("No valid water cell found in the same row!\n");
-            }
-
-            sprintf(type, "%d", row + 1);
-            printf("\nBob used Torpedo on Row (%d)\n", row + 1);
-            torpedo(attacker, defender, type);
         }
         else
         {
-            if (row > 0 && defender->grid[row - 1][col] == '~')
+            int row_or_col = rand() % 2;
+
+            if (row_or_col == 0)
             {
-                row -= 1;
-            }
-            else if (row < GRID - 1 && defender->grid[row + 1][col] == '~')
-            {
-                row += 1;
+                int row = rand() % GRID;
+                sprintf(type, "%d", row + 1);
+                printf("\nBob performed Torpedo at Row (%d)\n", row + 1);
             }
             else
             {
-                printf("No valid water cell found in the same column!\n");
+                int col = rand() % GRID;
+                sprintf(type, "%c", 'A' + col);
+                printf("\nBob used Torpedo at Column (%c)\n", 'A' + col);
             }
-
-            sprintf(type, "%c", 'A' + col);
-            printf("\nBob used Torpedo on Column (%c)\n", 'A' + col);
             torpedo(attacker, defender, type);
         }
     }
