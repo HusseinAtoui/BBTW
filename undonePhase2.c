@@ -1121,7 +1121,7 @@ void BOTGamePlay(struct Player *attacker, struct Player *defender)
 
         else if (countSink(attacker, defender) >= 3 && attacker->torCount == 0) // TORPEDO
         {
-            BOTtorperdo(attacker, defender, row, col);
+            BOTtorpedo(attacker, defender, row, col);
             break;
         }
 
