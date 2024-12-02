@@ -38,6 +38,8 @@ struct Player
     int numOfHits;
     int lastHitX;
     int lastHitY;
+    int detectedRow; 
+    int detectedCol;
 };
 
 void gridStart(char grid[GRID][GRID])
